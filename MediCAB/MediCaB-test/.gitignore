@@ -1,0 +1,17 @@
+# Python / Pytest cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Playwright outputs
+test-results/
+playwright-report/
+blob-report/
+
+# OS files
+Thumbs.db
+.DS_Store

@@ -27,6 +27,9 @@
             "polyfills": [
               "zone.js"
             ],
+            "optimization": {
+              "fonts": false
+            },
             "outputPath": "dist/medicab"
           },
           "configurations": {
