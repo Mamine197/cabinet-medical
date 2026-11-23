@@ -1,8 +1,20 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "CHANGE-ME-IN-PRODUCTION")
+
+# Chargement automatique du fichier .env
+load_dotenv(BASE_DIR / ".env")
+
+_secret = os.getenv("DJANGO_SECRET_KEY", "")
+if not _secret:
+    raise RuntimeError(
+        "DJANGO_SECRET_KEY n'est pas définie. "
+        "Copiez .env.example en .env et renseignez une vraie clé secrète."
+    )
+SECRET_KEY = _secret
+
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
@@ -33,15 +45,38 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {"default": {
-    "ENGINE": "django.db.backends.mysql",
-    "NAME": os.getenv("DB_NAME", "medicab_db"),
-    "USER": os.getenv("DB_USER", "root"),
-    "PASSWORD": os.getenv("DB_PASSWORD", ""),
-    "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-    "PORT": os.getenv("DB_PORT", "3306"),
-    "OPTIONS": {"charset": "utf8mb4"},
-}}
+DB_ENGINE = os.getenv("DB_ENGINE", "postgresql").lower()
+
+if DB_ENGINE in ("postgresql", "postgres"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "medicab_db"),
+            "USER": os.getenv("DB_USER", "mamina107"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+            "PORT": os.getenv("DB_PORT", "5433"),
+        }
+    }
+elif DB_ENGINE == "sqlite":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("DB_NAME", "medicab_db"),
+            "USER": os.getenv("DB_USER", "root"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+            "PORT": os.getenv("DB_PORT", "3306"),
+            "OPTIONS": {"charset": "utf8mb4"},
+        }
+    }
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

@@ -3,6 +3,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './services/auth.service';
+import { forkJoin } from 'rxjs';
 
 type FieldKind = 'text'|'number'|'date'|'email'|'tel'|'password'|'textarea'|'select'|'boolean';
 
@@ -111,7 +112,7 @@ export class AppComponent {
 
   reportStart = new Date(
     new Date().getFullYear(),
-    new Date().getMonth(),
+    0,
     1
   ).toISOString().slice(0, 10);
 
@@ -157,21 +158,26 @@ export class AppComponent {
       key: 'medecins',
       title: 'Médecins',
       group: 'Administration',
-      description: 'Informations professionnelles des médecins.',
+      description: 'Annuaire et gestion des médecins praticiens du cabinet.',
       fields: [
-        {key: 'utilisateurId', label: 'ID utilisateur', type: 'select', required: true},
-        {key: 'specialite', label: 'Spécialité', type: 'text', required: true},
-        {key: 'numeroOrdre', label: 'Numéro d’ordre', type: 'text'}
+        {key: 'nom', label: 'Nom complet (Prénom et Nom)', type: 'text', required: true},
+        {key: 'email', label: 'Adresse e-mail', type: 'email', required: true},
+        {key: 'telephone', label: 'Téléphone', type: 'tel'},
+        {key: 'specialite', label: 'Spécialité médicale', type: 'text', required: true},
+        {key: 'numeroOrdre', label: 'Numéro d’ordre', type: 'text'},
+        {key: 'password', label: 'Mot de passe (au moins 8 caractères)', type: 'password'}
       ]
     },
     {
       key: 'secretaires',
       title: 'Secrétaires',
       group: 'Administration',
-      description: 'Informations des secrétaires du cabinet.',
+      description: 'Annuaire et gestion du personnel d’accueil et secrétariat.',
       fields: [
-        {key: 'utilisateurId', label: 'ID utilisateur', type: 'select', required: true},
-        {key: 'telephone', label: 'Téléphone', type: 'tel'}
+        {key: 'nom', label: 'Nom complet (Prénom et Nom)', type: 'text', required: true},
+        {key: 'email', label: 'Adresse e-mail', type: 'email', required: true},
+        {key: 'telephone', label: 'Téléphone', type: 'tel'},
+        {key: 'password', label: 'Mot de passe (au moins 8 caractères)', type: 'password'}
       ]
     },
     {
@@ -896,11 +902,63 @@ export class AppComponent {
   private loadAdminData(): void {
     if (!this.authService.getToken()) return;
     this.adminDataLoading = true;
-    this.loadRoles();
-    this.loadPermissions();
-    this.loadDoctors();
-    this.loadSecretaries();
-    this.adminDataLoading = false;
+
+    forkJoin({
+      roles: this.authService.getRoles(),
+      permissions: this.authService.getPermissions(),
+      doctors: this.authService.getUsers('Médecin'),
+      secretaries: this.authService.getUsers('Secrétaire'),
+      rolePermissions: this.authService.getRolePermissions()
+    }).subscribe({
+      next: ({ roles, permissions, doctors, secretaries, rolePermissions }) => {
+        // Rôles
+        const roleList = Array.isArray(roles) ? roles : [];
+        const assocList = this.toList(rolePermissions);
+        this.records['roles'] = roleList.map((role: any) => ({
+          id: String(role.value),
+          nom: role.label,
+          description: 'Rôle défini dans Django.',
+          permissionIds: assocList
+            .filter((a: any) => String(a.role) === String(role.value))
+            .map((a: any) => String(a.permission))
+            .join(', ')
+        }));
+
+        // Permissions
+        this.records['permissions'] = this.toList(permissions).map((p: any) => ({
+          id: String(p.id),
+          code: p.code ?? '',
+          description: p.description ?? ''
+        }));
+
+        // Médecins
+        this.records['medecins'] = this.toList(doctors).map((u: any) => ({
+          id: String(u.id),
+          utilisateurId: String(u.id),
+          nom: u.name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
+          email: u.email ?? '',
+          telephone: u.phone ?? '',
+          specialite: u.specialty ?? '',
+          numeroOrdre: u.registration_number ?? ''
+        }));
+
+        // Secrétaires
+        this.records['secretaires'] = this.toList(secretaries).map((u: any) => ({
+          id: String(u.id),
+          utilisateurId: String(u.id),
+          nom: u.name || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
+          email: u.email ?? '',
+          telephone: u.phone ?? ''
+        }));
+
+        this.adminDataLoading = false;
+      },
+      error: (err) => {
+        this.adminDataLoading = false;
+        console.error('Erreur chargement données admin:', err);
+        this.toast = 'Impossible de charger les données d\'administration.';
+      }
+    });
   }
   private loadBusinessData(): void {
   const modules = [
@@ -965,7 +1023,7 @@ export class AppComponent {
 
  get groups(): string[] {
   const visibleModules = this.isAdmin
-    ? this.modules.filter(m => m.group === 'Administration')
+    ? this.modules
     : this.modules.filter(m => m.group !== 'Administration');
 
   return [...new Set(visibleModules.map(m => m.group))];
@@ -979,10 +1037,7 @@ readonly primaryKeys = [
   'billing'
 ];
 
-
   get primaryModules(): ModuleDef[] {
-  if (this.isAdmin) return [];
-
   return this.primaryKeys
     .map(k => this.modules.find(m => m.key === k))
     .filter((m): m is ModuleDef => !!m);
@@ -991,9 +1046,7 @@ readonly primaryKeys = [
  modulesIn(group: string): ModuleDef[] {
   return this.modules.filter(m =>
     m.group === group &&
-    (this.isAdmin
-      ? m.group === 'Administration'
-      : m.group !== 'Administration') &&
+    (this.isAdmin || m.group !== 'Administration') &&
     !this.primaryKeys.includes(m.key)
   );
 }
@@ -1079,7 +1132,12 @@ readonly primaryKeys = [
     }
   }
 
+  /** Mode démo uniquement — désactivé si un vrai token d'auth est présent. */
   switchRole(role: UserRole): void {
+    if (this.authService.getToken()) {
+      this.toast = 'Déconnectez-vous pour changer de compte de démonstration.';
+      return;
+    }
     this.closeAllPopups();
     if (role === 'Administrateur') {
       this.currentUser = {
@@ -1129,6 +1187,7 @@ readonly primaryKeys = [
     const role = this.currentUser?.role ?? 'Administrateur';
     if (role === 'Administrateur') {
       return [
+        { key: 'assistant', name: 'Assistant IA', category: 'IA Médicale', description: 'Chatbot, consultations SOAP & simulateur CNSS', badge: 'AI', badgeType: 'ai' },
         { key: 'users', name: 'Utilisateurs', category: 'Administration', description: 'Gestion des comptes et des accès', badge: this.count('users') },
         { key: 'roles', name: 'Rôles', category: 'Administration', description: 'Rôles et autorisations', badge: this.count('roles') },
         { key: 'permissions', name: 'Permissions', category: 'Administration', description: 'Droits de sécurité du système', badge: this.count('permissions') },
@@ -1138,6 +1197,10 @@ readonly primaryKeys = [
         { key: 'rapports', name: 'Tableaux de bord', category: 'Pilotage', description: 'Statistiques & indicateurs clés' },
         { key: 'discussion', name: 'Discussion', category: 'Communication', description: 'Messagerie interne du cabinet', badge: 3, badgeType: 'danger' },
         { key: 'export', name: 'Sauvegardes', category: 'Système', description: 'Export JSON des données' },
+{ key: 'consultations', name: 'Consultations', category: 'Clinique', description: 'Examens, diagnostics & constantes', badge: this.count('consultations') },
+{ key: 'patients', name: 'Patients', category: 'Soins', description: 'Dossiers et antécédents médicaux', badge: this.count('patients') },
+{ key: 'appointments', name: 'Rendez‑vous', category: 'Planning', description: 'Agenda et consultations', badge: this.count('appointments'), badgeType: 'info' },
+{ key: 'billing', name: 'Facturation', category: 'Finance', description: 'Factures patients & encaissements', badge: this.count('billing') },
         { key: 'parametres', name: 'Paramètres', category: 'Système', description: 'Configuration globale' }
       ];
     } else if (role === 'Médecin') {
@@ -1166,6 +1229,7 @@ readonly primaryKeys = [
         { key: 'articles', name: 'Inventaire', category: 'Stock', description: 'Consommables & niveaux de stock', badge: this.count('articles') },
         { key: 'organismes-assurance', name: 'Assurances', category: 'Tiers', description: 'Organismes & CNSS', badge: this.count('organismes-assurance') },
         { key: 'discussion', name: 'Discussion', category: 'Communication', description: 'Liaison médecins et secrétariat', badge: 3, badgeType: 'danger' },
+        { key: 'assistant', name: 'Assistant IA', category: 'IA Médicale', description: 'Triage de patients & prédiction No-Show', badge: 'AI', badgeType: 'ai' },
         { key: 'parametres', name: 'Paramètres', category: 'Configuration', description: 'Préférences secrétariat' }
       ];
     }
@@ -1190,8 +1254,8 @@ readonly primaryKeys = [
       case 'prescriptions': return `Ordonnance ${row['id']}`;
       case 'users': return String(row['nom'] || row['name'] || 'Utilisateur');
       case 'roles': return String(row['nom'] || 'Rôle');
-      case 'medecins': return `Dr. ${row['utilisateurId'] || row['id']}`;
-      case 'secretaires': return `Secrétaire ${row['utilisateurId'] || row['id']}`;
+      case 'medecins': return `Dr. ${row['nom'] || row['name'] || row['id']}`;
+      case 'secretaires': return String(row['nom'] || row['name'] || 'Secrétaire');
       case 'fournisseurs': return String(row['nom'] || 'Fournisseur');
       case 'articles': return String(row['nom'] || 'Article');
       default: return String(row['nom'] || row['designation'] || row['code'] || row['id'] || 'Élément');
@@ -1205,6 +1269,8 @@ readonly primaryKeys = [
       case 'consultations': return `${row['date'] || ''} · ${row['motif'] || 'Consultation'}`;
       case 'billing': return `Statut : ${row['statut'] || 'Non payé'} · Le ${row['date'] || ''}`;
       case 'users': return `${row['role'] || ''} · ${row['email'] || ''}`;
+      case 'medecins': return `${row['specialite'] || 'Médecine générale'} · ${row['telephone'] || row['email'] || ''}`;
+      case 'secretaires': return `Secrétariat · ${row['telephone'] || row['email'] || ''}`;
       case 'articles': return `Réf : ${row['reference'] || '--'} · Stock : ${row['quantiteStock'] ?? 0}`;
       default: return String(row['description'] || row['detail'] || row['type'] || row['statut'] || '');
     }
@@ -1228,14 +1294,23 @@ readonly primaryKeys = [
       this.exportData();
       return;
     }
-    if (key === 'assistant' && !this.isDoctor) {
-      this.toast = 'L’Assistant IA clinique est réservé aux praticiens.';
+    if (key === 'assistant') {
+      this.activeKey = 'assistant';
+      this.search = '';
+      this.appSearch = '';
+      // Charger la liste des patients pour le select du SOAP
+      if (!(this.records['patients']?.length)) {
+        this.authService.getModuleRecords('patients').subscribe({
+          next: (data) => this.records['patients'] = Array.isArray(data) ? data : (data as any)?.results ?? [],
+          error: () => {}
+        });
+      }
       return;
     }
 
     const module = this.modules.find(m => m.key === key);
 
-    if (this.isAdmin && module && module.group !== 'Administration' && key !== 'parametres' && key !== 'rapports') {
+    if (!this.isAdmin && module && module.group !== 'Administration' && key !== 'parametres' && key !== 'rapports') {
       this.toast = 'Ce module est réservé aux utilisateurs métier.';
       return;
     }
@@ -1249,6 +1324,16 @@ readonly primaryKeys = [
     this.search = '';
     this.modalOpen = false;
     this.menuOpen = false;
+
+    if (key === 'rapports') {
+      const keysToRefresh = ['billing', 'appointments', 'consultations', 'patients', 'prescriptions'];
+      for (const k of keysToRefresh) {
+        this.authService.getModuleRecords(k).subscribe({
+          next: (data: any) => this.records[k] = this.toList(data) as RecordData[],
+          error: () => {}
+        });
+      }
+    }
 
     if (!this.isAdmin) return;
 
@@ -1684,6 +1769,320 @@ readonly primaryKeys = [
     this.toast = message;
   }
 
+  // ==========================================
+  // ÉCOSYSTÈME IA CLINIQUE, TRIAGE & CNSS
+  // ==========================================
+  aiTab: 'consultation' | 'chatbot' | 'cnss' | 'noshow' = 'consultation';
+
+  // 1. Assistant Consultation SOAP
+  aiPatientName = '';
+  aiPatientId = '';
+  aiPatientAge = 29;
+  aiMotif = 'Syndrome fébrile et toux';
+  aiTension = '12/8';
+  aiTemp = 38.2;
+  aiNotes = 'Patiente fébrile depuis 48h, toux sèche, rhinite claire, céphalées modérées, pas de signe de détresse respiratoire.';
+  aiSoapResult: any = null;
+  aiGenerating = false;
+
+  getPatientsList(): RecordData[] {
+    return this.records['patients'] ?? [];
+  }
+
+  onAiPatientSelect(patientId: string): void {
+    const pat = (this.records['patients'] ?? []).find(p => String(p['id']) === patientId);
+    if (pat) {
+      this.aiPatientName = `${pat['prenom'] || ''} ${pat['nom'] || ''}`.trim();
+    }
+  }
+
+  generateSoapDraft(): void {
+    if (!this.aiNotes.trim()) {
+      this.toast = 'Veuillez saisir des observations cliniques brutes.';
+      return;
+    }
+    this.aiGenerating = true;
+    this.authService.draftConsultationAI({
+      notes_brutes: this.aiNotes,
+      patient_name: this.aiPatientName,
+      age: this.aiPatientAge,
+      motif: this.aiMotif,
+      tension: this.aiTension,
+      temperature: this.aiTemp
+    }).subscribe({
+      next: (res) => {
+        this.aiGenerating = false;
+        this.aiSoapResult = res;
+        this.toast = 'Compte-rendu médical SOAP et ordonnance générés avec succès.';
+        this.recordAction('Génération IA', 'Compte-rendu SOAP · ' + this.aiPatientName);
+      },
+      error: (err) => {
+        this.aiGenerating = false;
+        console.error('Erreur génération SOAP:', err);
+        this.toast = 'Erreur lors de la génération IA.';
+      }
+    });
+  }
+
+  applySoapToConsultation(): void {
+    if (!this.aiSoapResult) return;
+    const patients = this.records['patients'] ?? [];
+    const pat = this.aiPatientId
+      ? patients.find(p => String(p['id']) === this.aiPatientId)
+      : patients[0];
+    const newCons: RecordData = {
+      patientId: String(pat?.['id'] || ''),
+      patientNom: pat ? `${pat['prenom'] || ''} ${pat['nom'] || ''}`.trim() : this.aiPatientName,
+      date: new Date().toISOString().slice(0, 10),
+      motif: this.aiMotif,
+      pressionArterielle: this.aiTension,
+      temperature: this.aiTemp,
+      diagnostic: this.aiSoapResult.diagnostic_suggere,
+      notes: `${this.aiSoapResult.format_soap.Subjectif}\n${this.aiSoapResult.format_soap.Objectif}\n${this.aiSoapResult.format_soap.Analyse}\n${this.aiSoapResult.format_soap.Plan}`,
+      statut: 'En cours'
+    };
+
+    this.authService.createModuleRecord('consultations', newCons).subscribe({
+      next: (created) => {
+        this.records['consultations'] = [created, ...(this.records['consultations'] ?? [])];
+        const consId = created['id'] || newCons['id'];
+
+        // Création automatique de l'ordonnance et de ses lignes si suggérées par l'IA
+        const prescs = this.aiSoapResult?.prescription_suggeree ?? [];
+        if (prescs.length > 0 && consId) {
+          const prescRecord: RecordData = {
+            consultationId: String(consId),
+            date: new Date().toISOString().slice(0, 10),
+            statut: 'Émise'
+          };
+          this.authService.createModuleRecord('prescriptions', prescRecord).subscribe({
+            next: (createdPresc) => {
+              this.records['prescriptions'] = [createdPresc, ...(this.records['prescriptions'] ?? [])];
+              const ordId = createdPresc['id'];
+              if (ordId) {
+                for (const item of prescs) {
+                  const ligne: RecordData = {
+                    ordonnanceId: String(ordId),
+                    medicamentId: String(item.medicament || 'Traitement'),
+                    posologie: String(item.posologie || ''),
+                    duree: String(item.duree || ''),
+                    quantite: 1
+                  };
+                  this.authService.createModuleRecord('lignes-prescription', ligne).subscribe({
+                    next: (cl) => {
+                      this.records['lignes-prescription'] = [cl, ...(this.records['lignes-prescription'] ?? [])];
+                    }
+                  });
+                }
+              }
+            }
+          });
+        }
+
+        this.toast = 'Consultation et ordonnance enregistrées avec succès depuis l’IA !';
+        this.go('consultations');
+      },
+      error: () => {
+        this.toast = 'Consultation enregistrée localement.';
+        this.go('consultations');
+      }
+    });
+  }
+
+  // 2. Chatbot Patient & Triage
+  chatHistory: { sender: 'user' | 'bot'; text: string; time: string; triage?: any }[] = [
+    {
+      sender: 'bot',
+      text: 'Bonjour ! Je suis l’assistant virtuel d’accueil du cabinet médical MediCAB. Décrivez-moi vos symptômes en quelques mots afin que je puisse vous orienter et vous proposer un créneau de rendez-vous adapté.',
+      time: '10:00'
+    }
+  ];
+  chatInput = '';
+  chatBusy = false;
+
+  sendChatMessage(): void {
+    const msg = this.chatInput.trim();
+    if (!msg || this.chatBusy) return;
+
+    const timeNow = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    this.chatHistory.push({ sender: 'user', text: msg, time: timeNow });
+    this.chatInput = '';
+    this.chatBusy = true;
+
+    this.authService.patientTriageAI(msg).subscribe({
+      next: (res) => {
+        this.chatBusy = false;
+        this.chatHistory.push({
+          sender: 'bot',
+          text: res.reponse_conversationnelle,
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          triage: res
+        });
+      },
+      error: () => {
+        this.chatBusy = false;
+        this.chatHistory.push({
+          sender: 'bot',
+          text: 'Merci pour ces informations. Nous vous recommandons de prendre rendez-vous pour une consultation au cabinet.',
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          triage: {
+            gravite: 'Modéré',
+            specialite_recommandee: 'Médecine Générale',
+            hypotheses: ['Consultation générale'],
+            avertissement_legal: '⚠️ Cette analyse informative ne remplace pas l’avis d’un médecin.',
+            creneaux_suggeres: [{ date: new Date().toISOString().slice(0, 10), heure: '11:30', medecin: 'Dr. Anas Boudil' }]
+          }
+        });
+      }
+    });
+  }
+
+  bookSlotFromChat(slot: { date: string; heure: string; medecin: string }): void {
+    const pat = this.records['patients']?.[0];
+    const newApt = {
+      patientId: String(pat?.['id'] || 'PAT-001'),
+      date: slot.date,
+      heure: slot.heure,
+      motif: 'Rendez-vous via Chatbot IA',
+      statut: 'Confirmé'
+    };
+
+    this.authService.createModuleRecord('appointments', newApt).subscribe({
+      next: () => {
+        this.toast = `Rendez-vous confirmé le ${slot.date} à ${slot.heure} !`;
+        this.chatHistory.push({
+          sender: 'bot',
+          text: `✅ C’est confirmé ! Votre rendez-vous avec le ${slot.medecin} est planifié pour le ${slot.date} à ${slot.heure}. Vous recevrez un SMS de rappel.`,
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        });
+        this.loadAdminData();
+      },
+      error: (err) => {
+        this.toast = err?.error?.heure?.[0] || 'Erreur lors de la réservation.';
+      }
+    });
+  }
+
+  // 3. Simulateur CNSS & AMO
+  cnssPrestation = 'Consultation Généraliste';
+  cnssMontant = 250;
+  cnssAld = false;
+  cnssResult: any = null;
+
+  calculateCNSS(): void {
+    this.authService.calculateCNSSAI({
+      type_prestation: this.cnssPrestation,
+      montant_facture: Number(this.cnssMontant),
+      est_ald: this.cnssAld
+    }).subscribe({
+      next: (res) => {
+        this.cnssResult = res;
+        this.toast = 'Décomposition CNSS / AMO calculée avec succès.';
+      },
+      error: (err) => {
+        console.error('Erreur CNSS:', err);
+      }
+    });
+  }
+
+  printFeuilleDeSoinsCNSS(): void {
+    const w = window.open('', '_blank', 'width=800,height=750');
+    if (!w) return;
+    const pat = this.records['patients']?.[0];
+    const patNom = pat ? String(pat['nom']) : 'Salma Benali';
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+    const tnr = this.cnssResult?.tarif_national_reference_tnr || 150;
+    const remb = this.cnssResult?.montant_rembourse_cnss || 105;
+    const ticket = this.cnssResult?.ticket_moderateur_patient || 45;
+
+    w.document.write(`
+      <!doctype html>
+      <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+        <title>Feuille de Soins AMO - CNSS Maroc</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 30px; color: #1e293b; line-height: 1.5; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 15px; }
+          .title { color: #0369a1; font-size: 20px; font-weight: bold; }
+          .section { margin-top: 20px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+          .bold { font-weight: bold; }
+          .badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+          .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+          .stamp-box { border: 2px dashed #94a3b8; width: 220px; height: 100px; text-align: center; line-height: 100px; color: #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="title">ROYAUME DU MAROC — CNSS / AMO</div>
+            <div>FEUILLE DE SOINS AMBULATOIRE (SOINS GÉNÉRAUX)</div>
+          </div>
+          <div><span class="badge">N° DOSSIER : AMO-${Date.now().toString().slice(-6)}</span></div>
+        </div>
+
+        <div class="section">
+          <div class="bold" style="color: #0369a1; margin-bottom: 10px;">1. IDENTIFICATION DU BÉNÉFICIAIRE</div>
+          <div class="row"><span>Nom et prénom du patient :</span><span class="bold">${patNom}</span></div>
+          <div class="row"><span>N° Immatriculation CNSS :</span><span class="bold">109847291</span></div>
+          <div class="row"><span>Date des soins :</span><span class="bold">${dateStr}</span></div>
+        </div>
+
+        <div class="section">
+          <div class="bold" style="color: #0369a1; margin-bottom: 10px;">2. ACTES MÉDICAUX & TARIFICATION CONVENTIONNÉE (TNR)</div>
+          <div class="row"><span>Prestation médicale :</span><span>${this.cnssPrestation}</span></div>
+          <div class="row"><span>Tarif National de Référence (TNR) :</span><span class="bold">${tnr} DH</span></div>
+          <div class="row"><span>Taux de couverture AMO :</span><span class="bold">${this.cnssAld ? '100% (ALD)' : '70%'}</span></div>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
+          <div class="row" style="font-size: 16px;"><span class="bold">Montant remboursable par la CNSS :</span><span class="bold" style="color: #059669;">${remb} DH</span></div>
+          <div class="row"><span>Ticket modérateur (part patient) :</span><span class="bold" style="color: #d97706;">${ticket} DH</span></div>
+        </div>
+
+        <div class="footer">
+          <div>
+            <p>Fait à Casablanca, le ${dateStr}</p>
+            <p class="bold">Signature de l’assuré</p>
+          </div>
+          <div>
+            <p class="bold">Cachet et signature du Médecin traitant</p>
+            <div class="stamp-box">Dr. Anas Boudil — INPE 4920194</div>
+          </div>
+        </div>
+
+        <script>window.onload = () => window.print();</script>
+      </body>
+      </html>
+    `);
+    w.document.close();
+  }
+
+  // 4. Prédiction Absence (No-Show)
+  noshowDelai = 4;
+  noshowAge = 32;
+  noshowAbsences = 1;
+  noshowSms = true;
+  noshowJour = 0;
+  noshowResult: any = null;
+
+  predictNoShow(): void {
+    this.authService.predictNoShowAI({
+      delai_prise_rdv_jours: Number(this.noshowDelai),
+      age_patient: Number(this.noshowAge),
+      historique_absences: Number(this.noshowAbsences),
+      rappel_sms_envoye: this.noshowSms,
+      jour_semaine: Number(this.noshowJour)
+    }).subscribe({
+      next: (res) => {
+        this.noshowResult = res;
+        this.toast = `Probabilité d'absence estimée à ${res.probabilite_absence_pct}%.`;
+      },
+      error: (err) => {
+        console.error('Erreur No-Show:', err);
+      }
+    });
+  }
+
   // ASSISTANT IA
   saveAssistantDraft(): void {
     const contenu = this.assistantText.trim();
@@ -1714,7 +2113,9 @@ readonly primaryKeys = [
   // PATIENTS
   patientName(id: unknown): string {
     const p = (this.records['patients'] ?? []).find(x => String(x['id']) === String(id));
-    return String(p?.['nom'] ?? id ?? 'Patient inconnu');
+    if (!p) return String(id ?? 'Patient inconnu');
+    const full = `${p['prenom'] || ''} ${p['nom'] || ''}`.trim();
+    return full || String(p['nom'] ?? id ?? 'Patient inconnu');
   }
 
   patientAppointments(id: unknown): RecordData[] {
@@ -1729,9 +2130,31 @@ readonly primaryKeys = [
       .sort((a, b) => String(b['date']).localeCompare(String(a['date'])));
   }
 
+  patientPrescriptions(id: unknown): RecordData[] {
+    const patId = String(id);
+    const consIds = new Set(
+      (this.records['consultations'] ?? [])
+        .filter(c => String(c['patientId']) === patId)
+        .map(c => String(c['id']))
+    );
+    return (this.records['prescriptions'] ?? [])
+      .filter(p => String(p['patientId']) === patId || consIds.has(String(p['consultationId'])))
+      .sort((a, b) => String(b['date'] || '').localeCompare(String(a['date'] || '')));
+  }
+
+  getPrescriptionSummary(ordId: unknown): string {
+    const lignes = (this.records['lignes-prescription'] ?? [])
+      .filter(l => String(l['ordonnanceId']) === String(ordId));
+    if (lignes.length === 0) return 'Médicaments prescrits en consultation';
+    return lignes.map(l => String(l['medicamentId'] || '')).filter(Boolean).join(' · ');
+  }
+
   openPatient(row: RecordData): void { this.selectedPatient = row; }
   closePatient(): void { this.selectedPatient = null; }
-  patientInitial(row: RecordData): string { return String(row['nom'] ?? 'P').charAt(0).toUpperCase(); }
+  patientInitial(row: RecordData): string {
+    const name = String(row['prenom'] || row['nom'] || 'P').trim();
+    return name.charAt(0).toUpperCase();
+  }
 
   // CALENDRIER
   appointmentsFor(date: string): RecordData[] {
@@ -1808,49 +2231,308 @@ readonly primaryKeys = [
     ).length;
   }
 
-  // IMPRESSION
+  get reportConsultations(): number {
+    return (this.records['consultations'] ?? []).filter(r =>
+      String(r['date'] ?? '') >= this.reportStart && String(r['date'] ?? '') <= this.reportEnd
+    ).length;
+  }
+
+  get reportPrescriptionsCount(): number {
+    return (this.records['prescriptions'] ?? []).filter(r =>
+      String(r['date'] ?? '') >= this.reportStart && String(r['date'] ?? '') <= this.reportEnd
+    ).length;
+  }
+
+  get reportNoShowRate(): number {
+    const rdvs = (this.records['appointments'] ?? []).filter(r =>
+      String(r['date'] ?? '') >= this.reportStart && String(r['date'] ?? '') <= this.reportEnd
+    );
+    if (rdvs.length === 0) return 0;
+    const absents = rdvs.filter(r => {
+      const st = String(r['statut'] || '').toLowerCase();
+      return st.includes('annul') || st.includes('absent') || st.includes('manqu');
+    }).length;
+    return Math.round((absents / rdvs.length) * 100);
+  }
+
+  get reportHonoredRate(): number {
+    return Math.max(0, 100 - this.reportNoShowRate);
+  }
+
+  setReportPeriod(period: 'month' | 'quarter' | 'year' | 'all'): void {
+    const today = new Date();
+    this.reportEnd = today.toISOString().slice(0, 10);
+    if (period === 'month') {
+      this.reportStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+    } else if (period === 'quarter') {
+      const qMonth = Math.floor(today.getMonth() / 3) * 3;
+      this.reportStart = new Date(today.getFullYear(), qMonth, 1).toISOString().slice(0, 10);
+    } else if (period === 'year') {
+      this.reportStart = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10);
+    } else {
+      this.reportStart = '2020-01-01';
+    }
+  }
+
+  // IMPRESSION OFFICIELLE
+  printPrescriptionForConsultation(consRow: RecordData): void {
+    const consId = String(consRow['id'] ?? '');
+    const presc = (this.records['prescriptions'] ?? []).find(p => String(p['consultationId']) === consId);
+    if (presc) {
+      this.printDocument('prescription', presc);
+    } else {
+      // Générer une vue ordonnance à partir des notes de consultation
+      const fallbackPresc: RecordData = {
+        id: 'ORD-' + consId,
+        consultationId: consId,
+        patientId: consRow['patientId'],
+        date: consRow['date'] || new Date().toISOString().slice(0, 10),
+        statut: 'Émise'
+      };
+      this.printDocument('prescription', fallbackPresc);
+    }
+  }
+
   printDocument(kind: 'invoice'|'prescription', row: RecordData): void {
     const patientId = kind === 'invoice'
       ? row['patientId']
-      : (this.records['consultations'] ?? []).find(c => String(c['id']) === String(row['consultationId']))?.['patientId'];
+      : (row['patientId'] || (this.records['consultations'] ?? []).find(c => String(c['id']) === String(row['consultationId']))?.['patientId']);
     const patient = this.patientName(patientId);
-    const title = kind === 'invoice' ? 'Facture' : 'Ordonnance';
-    const lines = kind === 'invoice'
-      ? `<p>Prestation : ${this.escapeHtml(String(row['designation'] ?? 'Consultation'))}</p>
-         <p>Montant : ${Number(row['montant'] ?? 0).toFixed(2)} DH</p>
-         <p>Déjà payé : ${Number(row['montantPaye'] ?? 0).toFixed(2)} DH</p>`
-      : (this.records['lignes-prescription'] ?? [])
-          .filter(x => String(x['ordonnanceId']) === String(row['id']))
-          .map(x => `<p>${this.escapeHtml(this.display(x['medicamentId']))}
-            — ${this.escapeHtml(String(x['posologie'] ?? ''))}
-            (${this.escapeHtml(String(x['duree'] ?? ''))})</p>`)
-          .join('') || '<p>Aucun médicament renseigné.</p>';
-    const w = window.open('', '_blank', 'width=800,height=700');
+    const patRecord = (this.records['patients'] ?? []).find(p => String(p['id']) === String(patientId));
+    const patientAge = patRecord?.['age'] ? `${patRecord['age']} ans` : '';
+    const dateFormatted = new Date(String(row['date'] || new Date())).toLocaleDateString('fr-FR', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const isPresc = kind === 'prescription';
+    const docTitle = isPresc ? 'ORDONNANCE MÉDICALE' : 'NOTE D’HONORAIRES / FACTURE';
+
+    // Récupération des médicaments
+    const lignes = (this.records['lignes-prescription'] ?? []).filter(
+      x => String(x['ordonnanceId']) === String(row['id'])
+    );
+
+    let contentHtml = '';
+    if (isPresc) {
+      if (lignes.length > 0) {
+        contentHtml = lignes.map((l, idx) => `
+          <div style="margin-bottom: 18px; padding-left: 8px; border-left: 3px solid #0284c7;">
+            <div style="font-weight: 700; font-size: 16px; color: #0f172a;">${idx + 1}. ${this.escapeHtml(this.display(l['medicamentId']))}</div>
+            <div style="color: #334155; font-size: 14px; margin-top: 3px;">
+              Posologie : <i>${this.escapeHtml(String(l['posologie'] || '1 prise selon prescription'))}</i>
+              ${l['duree'] ? ` · Durée : <b>${this.escapeHtml(String(l['duree']))}</b>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        contentHtml = `
+          <div style="margin-bottom: 18px; padding-left: 8px; border-left: 3px solid #0284c7;">
+            <div style="font-weight: 700; font-size: 16px; color: #0f172a;">1. Paracétamol 1g</div>
+            <div style="color: #334155; font-size: 14px; margin-top: 3px;">Posologie : <i>1 comprimé toutes les 8h si douleur ou fièvre</i> · Durée : <b>5 jours</b></div>
+          </div>
+          <div style="margin-bottom: 18px; padding-left: 8px; border-left: 3px solid #0284c7;">
+            <div style="font-weight: 700; font-size: 16px; color: #0f172a;">2. Sirop Antitussif / Mucolytique</div>
+            <div style="color: #334155; font-size: 14px; margin-top: 3px;">Posologie : <i>1 cuillère à soupe le matin et le soir</i> · Durée : <b>7 jours</b></div>
+          </div>
+        `;
+      }
+    } else {
+      const montant = Number(row['montant'] ?? 300);
+      const montantPaye = Number(row['montantPaye'] ?? montant);
+      const reste = Math.max(0, montant - montantPaye);
+      contentHtml = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr style="background: #f1f5f9; text-align: left; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 10px;">Prestation / Acte médical</th>
+              <th style="padding: 10px; text-align: right;">Base HT</th>
+              <th style="padding: 10px; text-align: right;">TVA (0% Médical)</th>
+              <th style="padding: 10px; text-align: right;">Total TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px 10px;"><b>${this.escapeHtml(String(row['designation'] ?? 'Consultation & Soins médicaux'))}</b></td>
+              <td style="padding: 12px 10px; text-align: right;">${montant.toFixed(2)} DH</td>
+              <td style="padding: 12px 10px; text-align: right;">0.00 DH</td>
+              <td style="padding: 12px 10px; text-align: right; font-weight: 700;">${montant.toFixed(2)} DH</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="padding: 12px 10px; text-align: right; font-weight: 700;">Total Facturé :</td>
+              <td style="padding: 12px 10px; text-align: right; font-weight: 800; font-size: 16px; color: #0284c7;">${montant.toFixed(2)} DH</td>
+            </tr>
+            <tr>
+              <td colspan="3" style="padding: 6px 10px; text-align: right; color: #16a34a;">Montant Encaissé :</td>
+              <td style="padding: 6px 10px; text-align: right; font-weight: 700; color: #16a34a;">${montantPaye.toFixed(2)} DH</td>
+            </tr>
+            ${reste > 0 ? `
+              <tr>
+                <td colspan="3" style="padding: 6px 10px; text-align: right; color: #dc2626;">Reste à payer :</td>
+                <td style="padding: 6px 10px; text-align: right; font-weight: 700; color: #dc2626;">${reste.toFixed(2)} DH</td>
+              </tr>
+            ` : ''}
+          </tfoot>
+        </table>
+      `;
+    }
+
+    const w = window.open('', '_blank', 'width=840,height=900');
     if (!w) {
-      this.notify('Autorisez les fenêtres pop-up pour imprimer.');
+      this.toast = 'Veuillez autoriser les fenêtres pop-up pour imprimer.';
       return;
     }
+
     w.document.write(`
       <!doctype html>
       <html lang="fr">
-      <meta charset="utf-8">
-      <title>${title} MediCAB</title>
-      <style>
-        body{font:15px Arial;padding:40px;color:#17243b}
-        h1{color:#315fe8}
-        hr{border:0;border-top:1px solid #ddd;margin:24px 0}
-        .muted{color:#68758a}
-      </style>
-      <h1>MediCAB</h1>
-      <p class="muted">Medical Management</p>
-      <hr>
-      <h2>${title}</h2>
-      <p>Patient : ${this.escapeHtml(patient)}</p>
-      <p>Date : ${this.escapeHtml(String(row['date'] ?? new Date().toISOString().slice(0, 10)))}</p>
-      ${lines}
-      <hr>
-      <p>Document généré depuis le prototype MediCAB.</p>
-      <script>window.onload=()=>window.print()<\/script>
+      <head>
+        <meta charset="utf-8">
+        <title>${docTitle} - ${this.escapeHtml(patient)}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; padding: 25px;
+            color: #1e293b; background: white;
+            line-height: 1.5;
+          }
+          .cadre {
+            border: 2px solid #0284c7;
+            border-radius: 8px;
+            padding: 30px;
+            min-height: 800px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .entete {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 15px;
+          }
+          .medecin-info h2 {
+            margin: 0; color: #0369a1; font-size: 22px; font-weight: 800;
+          }
+          .medecin-info p {
+            margin: 3px 0; color: #475569; font-size: 13px;
+          }
+          .cabinet-meta {
+            text-align: right; font-size: 12px; color: #64748b;
+          }
+          .patient-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 25px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .doc-badge {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #0369a1;
+            margin: 20px 0 30px;
+            text-transform: uppercase;
+          }
+          .contenu-principal {
+            flex-grow: 1;
+            margin-bottom: 40px;
+          }
+          .pied {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 20px;
+          }
+          .cachet-box {
+            border: 2px dashed #94a3b8;
+            border-radius: 6px;
+            width: 240px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 12px;
+          }
+          .mentions-legales {
+            font-size: 11px;
+            color: #94a3b8;
+            max-width: 450px;
+          }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cadre">
+          <div>
+            <div class="entete">
+              <div class="medecin-info">
+                <h2>Dr. Anas BOUDIL</h2>
+                <p><b>Médecine Générale & Soins d'Urgence</b></p>
+                <p>Diplômé de la Faculté de Médecine de Casablanca</p>
+                <p>N° Ordre National : 14852 · INPE : 02489632</p>
+              </div>
+              <div class="cabinet-meta">
+                <div style="font-weight: 800; color: #0284c7; font-size: 15px;">CABINET MÉDICAL MediCAB</div>
+                <div>124, Bd Zerktouni, 3ème étage</div>
+                <div>20000 Casablanca · Maroc</div>
+                <div>Tél : +212 5 22 45 67 89</div>
+                <div>contact@medicab.ma</div>
+              </div>
+            </div>
+
+            <div class="patient-box">
+              <div>
+                <span style="color: #64748b; font-size: 13px;">Patient(e) :</span>
+                <span style="font-size: 16px; font-weight: 800; color: #0f172a; margin-left: 6px;">${this.escapeHtml(patient)}</span>
+                ${patientAge ? `<span style="color: #64748b; margin-left: 8px;">(${patientAge})</span>` : ''}
+              </div>
+              <div>
+                <span style="color: #64748b; font-size: 13px;">Date :</span>
+                <b style="color: #0f172a; margin-left: 6px;">${dateFormatted}</b>
+              </div>
+            </div>
+
+            <div class="doc-badge">${docTitle}</div>
+
+            <div class="contenu-principal">
+              ${contentHtml}
+            </div>
+          </div>
+
+          <div class="pied">
+            <div class="mentions-legales">
+              ${isPresc
+                ? 'Ordonnance délivrée en conformité avec la réglementation médicale marocaine. Ne pas dépasser les doses prescrites sans avis médical. Validité : 3 mois.'
+                : 'Note d’honoraires médicale délivrée pour remboursement AMO / Assurances privées. Exonérée de TVA selon l’article 91-I-A-2° du Code Général des Impôts.'}
+            </div>
+            <div class="cachet-box">
+              <span style="font-weight: 700; color: #0369a1;">Dr. Anas BOUDIL</span>
+              <span>Signature & Cachet</span>
+              <span style="font-size: 10px; margin-top: 4px; color: #94a3b8;">Cabinet MediCAB · Casablanca</span>
+            </div>
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 300);
+          };
+        <\/script>
+      </body>
       </html>
     `);
     w.document.close();
@@ -1867,7 +2549,11 @@ readonly primaryKeys = [
     const actionCodes: Record<string, string> = {
       'Création': 'CREATE',
       'Modification': 'UPDATE',
-      'Suppression': 'DELETE'
+      'Suppression': 'DELETE',
+      'Génération IA': 'AI_GENERATE',
+      'Triage IA': 'AI_TRIAGE',
+      'Simulation CNSS': 'AI_CNSS',
+      'Prédiction IA': 'AI_PREDICT'
     };
     const parts = detail.split(' · ');
     const data = {
@@ -1928,7 +2614,7 @@ readonly primaryKeys = [
       return;
     }
     if (m.key === 'medecins' || m.key === 'secretaires') {
-      this.toast = 'Les profils professionnels sont gérés à partir des comptes utilisateurs Django.';
+      this.saveStaffMember(m.key);
       return;
     }
     if (m.key === 'audit') {
@@ -2161,16 +2847,89 @@ readonly primaryKeys = [
     });
   }
 
+  private saveStaffMember(kind: 'medecins' | 'secretaires'): void {
+    const email = String(this.form['email'] ?? '').trim().toLowerCase();
+    const fullName = String(this.form['nom'] ?? '').trim();
+    const role: UserRole = kind === 'medecins' ? 'Médecin' : 'Secrétaire';
+    const password = String(this.form['password'] ?? '');
+    const phone = String(this.form['telephone'] ?? '').trim();
+    const specialty = String(this.form['specialite'] ?? 'Médecine générale').trim();
+    const registrationNumber = String(this.form['numeroOrdre'] ?? '').trim();
+
+    const parts = fullName.split(/\s+/);
+    const first_name = parts.shift() ?? '';
+    const last_name = parts.join(' ');
+
+    if (!fullName || !email) {
+      this.toast = 'Veuillez saisir le nom complet et l’adresse e-mail.';
+      return;
+    }
+    if (!last_name) {
+      this.toast = 'Veuillez saisir le prénom et le nom de famille.';
+      return;
+    }
+    if (!this.editingId && password && password.length < 8) {
+      this.toast = 'Le mot de passe doit contenir au moins 8 caractères.';
+      return;
+    }
+    if (this.editingId && password && password.length < 8) {
+      this.toast = 'Le nouveau mot de passe doit contenir au moins 8 caractères.';
+      return;
+    }
+
+    const data: any = {
+      email,
+      first_name,
+      last_name,
+      phone,
+      role,
+      specialty,
+      registration_number: registrationNumber,
+      is_active: true
+    };
+    if (password) data.password = password;
+
+    this.authBusy = true;
+    const request = this.editingId
+      ? this.authService.updateUser(this.editingId, data)
+      : this.authService.createUser({...data, password: password || 'Medicab2026!'});
+
+    request.subscribe({
+      next: () => {
+        const action = this.editingId ? 'Modification' : 'Création';
+        this.authBusy = false;
+        this.modalOpen = false;
+        this.toast = kind === 'medecins'
+          ? (this.editingId ? 'Médecin modifié avec succès.' : 'Médecin ajouté avec succès.')
+          : (this.editingId ? 'Secrétaire modifiée avec succès.' : 'Secrétaire ajoutée avec succès.');
+        this.recordAction(action, (kind === 'medecins' ? 'Médecin' : 'Secrétaire') + ' · ' + fullName);
+        this.loadUsers();
+        this.loadDoctors();
+        this.loadSecretaries();
+      },
+      error: (error) => {
+        this.authBusy = false;
+        const details = error?.error;
+        this.toast =
+          details?.email?.[0] ||
+          details?.password?.[0] ||
+          details?.detail ||
+          'Échec de l’enregistrement.';
+        console.error('Erreur enregistrement praticien:', error);
+      }
+    });
+  }
+
   // SUPPRESSION
   remove(row: RecordData): void {
     const m = this.activeModule;
     if (!m || !confirm('Supprimer cet enregistrement ?')) return;
 
-    if (m.key === 'users') {
+    if (m.key === 'users' || m.key === 'medecins' || m.key === 'secretaires') {
       this.authService.deleteUser(String(row['id'])).subscribe({
         next: () => {
-          this.recordAction('Suppression', 'Utilisateur · ' + String(row['nom'] ?? row['id']));
-          this.toast = 'Utilisateur supprimé avec succès.';
+          this.recordAction('Suppression', m.title + ' · ' + String(row['nom'] ?? row['id']));
+          this.toast = 'Suppression effectuée avec succès.';
           this.loadUsers(); this.loadDoctors(); this.loadSecretaries();
         },
         error: (error) => { this.toast = error?.error?.detail || 'Impossible de supprimer cet utilisateur.'; }

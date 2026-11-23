@@ -273,6 +273,43 @@ export class AuthService {
   }
 
   // =========================
+  // FONCTIONNALITÉS IA & CNSS
+  // =========================
+
+  draftConsultationAI(data: {
+    notes_brutes: string;
+    patient_name?: string;
+    age?: number;
+    motif?: string;
+    tension?: string;
+    temperature?: number;
+  }): Observable<any> {
+    return this.http.post<any>(`${API_URL}/ai/draft-consultation/`, data);
+  }
+
+  patientTriageAI(message: string): Observable<any> {
+    return this.http.post<any>(`${API_URL}/ai/patient-triage/`, { message });
+  }
+
+  predictNoShowAI(data: {
+    delai_prise_rdv_jours: number;
+    age_patient: number;
+    historique_absences: number;
+    rappel_sms_envoye: boolean;
+    jour_semaine: number;
+  }): Observable<any> {
+    return this.http.post<any>(`${API_URL}/ai/predict-noshow/`, data);
+  }
+
+  calculateCNSSAI(data: {
+    type_prestation: string;
+    montant_facture: number;
+    est_ald: boolean;
+  }): Observable<any> {
+    return this.http.post<any>(`${API_URL}/ai/cnss-calculator/`, data);
+  }
+
+  // =========================
   // GESTION DU TOKEN
   // =========================
 

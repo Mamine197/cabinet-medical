@@ -63,6 +63,10 @@ class AuditLog(models.Model):
         ("CREATE", "Ajout"),
         ("UPDATE", "Modification"),
         ("DELETE", "Suppression"),
+        ("AI_GENERATE", "Génération IA"),
+        ("AI_TRIAGE", "Triage IA"),
+        ("AI_CNSS", "Simulation CNSS"),
+        ("AI_PREDICT", "Prédiction IA"),
     ]
 
     user = models.ForeignKey(

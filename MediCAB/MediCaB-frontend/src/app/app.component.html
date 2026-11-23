@@ -122,7 +122,7 @@
         </div>
 
         <!-- AI Copilot Button (matching Odoo screenshot) -->
-        <button class="odoo-ai-pill-btn" (click)="toggleAiDrawer(); $event.stopPropagation()" title="Assistant IA Copilot">
+        <button class="odoo-ai-pill-btn" (click)="go('assistant'); $event.stopPropagation()" title="Ouvrir le Centre d'IA MediCAB (Chatbot, SOAP, CNSS)">
           <i>✦</i><span>AI</span>
         </button>
 
@@ -254,9 +254,11 @@
               <button class="btn btn-light btn-sm" (click)="assistantText='Ordonnance : Paracétamol 1g (1 cp 3x/j si douleur), Sirop antitussif 1 c.à.s le soir pendant 5 jours.'">Modèle ordonnance</button>
             </div>
           </div>
-          <div class="modal-actions">
+          <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <button type="button" class="btn btn-light" (click)="aiDrawerOpen=false">Fermer</button>
-            <button type="button" class="btn btn-primary" (click)="saveAssistantDraft(); aiDrawerOpen=false" [disabled]="!assistantText.trim()">✓ Enregistrer en brouillon</button>
+            <button type="button" class="btn btn-primary" (click)="go('assistant'); aiDrawerOpen=false" style="background: linear-gradient(135deg, #f43f5e, #8b5cf6); border: none;">
+              🚀 Ouvrir le Centre d'IA Complet (Chatbot, SOAP, CNSS)
+            </button>
           </div>
         </section>
       </div>
@@ -441,12 +443,18 @@
               </div>
               <button class="odoo-btn-secondary" (click)="exportData()">⇩ Exporter les données</button>
             </div>
-            <section class="card report-filters" style="margin-bottom: 20px;">
-              <div class="field"><label>Du</label><input type="date" [(ngModel)]="reportStart"></div>
-              <div class="field"><label>Au</label><input type="date" [(ngModel)]="reportEnd"></div>
-              <button class="odoo-btn-primary" (click)="notify('Période du rapport mise à jour.')">Appliquer la période</button>
+            <section class="card report-filters" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+              <div class="field" style="margin: 0;"><label>Du</label><input type="date" [(ngModel)]="reportStart"></div>
+              <div class="field" style="margin: 0;"><label>Au</label><input type="date" [(ngModel)]="reportEnd"></div>
+              <button class="odoo-btn-primary" (click)="notify('Période du rapport mise à jour.')">Filtrer</button>
+              <div style="display: flex; gap: 6px; margin-left: auto;">
+                <button class="btn btn-light btn-sm" (click)="setReportPeriod('month')">Ce mois</button>
+                <button class="btn btn-light btn-sm" (click)="setReportPeriod('quarter')">Ce trimestre</button>
+                <button class="btn btn-light btn-sm" (click)="setReportPeriod('year')">Cette année</button>
+                <button class="btn btn-light btn-sm" (click)="setReportPeriod('all')">Tout l'historique</button>
+              </div>
             </section>
-            <div class="grid stats-grid">
+            <div class="grid stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
               <article class="card stat-card">
                 <div class="stat-top"><span class="stat-icon green">DH</span><span class="stat-change">Finance</span></div>
                 <div class="stat-label">Chiffre d’affaires facturé</div>
@@ -460,10 +468,22 @@
                 <div class="stat-foot">Sur la période</div>
               </article>
               <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon blue">🩺</span><span class="stat-change">Clinique</span></div>
+                <div class="stat-label">Consultations réalisées</div>
+                <div class="stat-value">{{reportConsultations}}</div>
+                <div class="stat-foot">Sur la période</div>
+              </article>
+              <article class="card stat-card">
                 <div class="stat-top"><span class="stat-icon blue">📅</span><span class="stat-change">Agenda</span></div>
                 <div class="stat-label">Rendez-vous planifiés</div>
                 <div class="stat-value">{{reportAppointments}}</div>
                 <div class="stat-foot">Sur la période</div>
+              </article>
+              <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon green">✓</span><span class="stat-change">Assiduité</span></div>
+                <div class="stat-label">Taux de présence aux RDV</div>
+                <div class="stat-value">{{reportHonoredRate}}%</div>
+                <div class="stat-foot">No-show : {{reportNoShowRate}}%</div>
               </article>
               <article class="card stat-card">
                 <div class="stat-top"><span class="stat-icon purple">👥</span><span class="stat-change neutral">Patientèle</span></div>
@@ -495,25 +515,331 @@
             </section>
 
           }@else if (activeKey==='assistant'){
-            <!-- ASSISTANT IA -->
+            <!-- ASSISTANT IA & MODULES CLINIQUES -->
             <div class="page-heading">
               <div>
-                <span class="eyebrow">COPILOT MÉDICAL</span>
-                <h1>Assistant IA MediCAB</h1>
-                <p>Espace de préparation et de rédaction de notes cliniques assistée par intelligence artificielle.</p>
+                <span class="eyebrow">COPILOT MÉDICAL & IA MULTIMODALE</span>
+                <h1>Centre d'Intelligence Artificielle MediCAB</h1>
+                <p>Outils d'assistance clinique, triage patient, conformité CNSS et algorithmes prédictifs.</p>
               </div>
             </div>
-            <section class="card assistant-card">
-              <div class="assistant-symbol">✦</div>
-              <h2>Assistant de rédaction clinique</h2>
-              <p>Saisissez les observations ou éléments cliniques pour générer une note médicale vérifiée.</p>
-              <label for="ai-draft-full">Votre note ou demande :</label>
-              <textarea id="ai-draft-full" rows="7" [(ngModel)]="assistantText" placeholder="Saisissez une note médicale à préparer..."></textarea>
-              <div class="heading-actions" style="margin-top: 15px;">
-                <button class="odoo-btn-primary" (click)="saveAssistantDraft()" [disabled]="!assistantText.trim()">✓ Enregistrer le brouillon</button>
-                <button class="odoo-btn-secondary" (click)="assistantText=''">Effacer</button>
+
+            <!-- Navigation Onglets IA -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+              <button class="btn" [ngClass]="aiTab === 'consultation' ? 'btn-primary' : 'btn-light'" (click)="aiTab = 'consultation'">
+                🩺 1. Consultation IA (Médecin)
+              </button>
+              <button class="btn" [ngClass]="aiTab === 'chatbot' ? 'btn-primary' : 'btn-light'" (click)="aiTab = 'chatbot'">
+                💬 2. Chatbot Patient & Triage
+              </button>
+              <button class="btn" [ngClass]="aiTab === 'cnss' ? 'btn-primary' : 'btn-light'" (click)="aiTab = 'cnss'">
+                🇲🇦 3. Simulateur CNSS / AMO
+              </button>
+              <button class="btn" [ngClass]="aiTab === 'noshow' ? 'btn-primary' : 'btn-light'" (click)="aiTab = 'noshow'">
+                📊 4. Prédiction No-Show (Secrétariat)
+              </button>
+            </div>
+
+            <!-- ONGLET 1 : ASSISTANT CONSULTATION SOAP (MÉDECIN) -->
+            @if (aiTab === 'consultation') {
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <section class="card">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Saisie clinique rapide</h3>
+                      <p>Renseignez les observations brutes du médecin pour générer le compte-rendu SOAP.</p>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Patient</label>
+                      <select [(ngModel)]="aiPatientId" (ngModelChange)="onAiPatientSelect($event)" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
+                        <option value="" disabled>-- Sélectionner un patient --</option>
+                        @for (p of getPatientsList(); track p['id']) {
+                          <option [value]="p['id']">{{p['prenom'] || ''}} {{p['nom'] || ''}} {{p['date_naissance'] ? '(' + p['date_naissance'] + ')' : ''}}</option>
+                        }
+                      </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                      <div>
+                        <label style="font-weight: 600; font-size: 13px;">Tension Artérielle</label>
+                        <input type="text" [(ngModel)]="aiTension" placeholder="ex: 12/8" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                      </div>
+                      <div>
+                        <label style="font-weight: 600; font-size: 13px;">Température (°C)</label>
+                        <input type="number" step="0.1" [(ngModel)]="aiTemp" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                      </div>
+                    </div>
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Observations cliniques brutes / Dictée</label>
+                      <textarea rows="5" [(ngModel)]="aiNotes" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                      <button class="odoo-btn-primary" (click)="generateSoapDraft()" [disabled]="aiGenerating">
+                        {{ aiGenerating ? 'Génération en cours...' : '✨ Générer Compte-Rendu SOAP' }}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="card" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Brouillon Structuré SOAP & Ordonnance</h3>
+                      <p>Résultat conforme aux normes médicales cliniques.</p>
+                    </div>
+                  </div>
+                  @if (aiSoapResult) {
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                      <div style="background: #e0f2fe; padding: 8px 12px; border-radius: 6px; font-weight: 600; color: #0369a1;">
+                        Diagnostic suggéré : {{ aiSoapResult.diagnostic_suggere }}
+                      </div>
+                      <div style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-size: 13px;">
+                        <p><strong>[S - Subjectif] :</strong> {{ aiSoapResult.format_soap.Subjectif }}</p>
+                        <p><strong>[O - Objectif] :</strong> {{ aiSoapResult.format_soap.Objectif }}</p>
+                        <p><strong>[A - Analyse] :</strong> {{ aiSoapResult.format_soap.Analyse }}</p>
+                        <p><strong>[P - Plan] :</strong> {{ aiSoapResult.format_soap.Plan }}</p>
+                      </div>
+
+                      <div style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px;">
+                        <strong style="color: #4338ca;">💊 Prescription proposée :</strong>
+                        <ul style="margin: 6px 0 0 20px; font-size: 13px;">
+                          @for (item of aiSoapResult.ordonnance_suggeree; track $index) {
+                            <li><strong>{{ item.medicament }}</strong> — {{ item.posologie }} ({{ item.duree }})</li>
+                          }
+                        </ul>
+                      </div>
+
+                      <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-primary" (click)="applySoapToConsultation()">✓ Transférer vers la Consultation</button>
+                      </div>
+                    </div>
+                  }@else {
+                    <div style="text-align: center; color: #94a3b8; padding: 40px 20px;">
+                      <div style="font-size: 32px; margin-bottom: 10px;">🤖</div>
+                      <p>Cliquez sur "Générer Compte-Rendu SOAP" pour voir la structuration médicale et la proposition d'ordonnance.</p>
+                    </div>
+                  }
+                </section>
               </div>
-            </section>
+            }
+
+            <!-- ONGLET 2 : CHATBOT PATIENT & TRIAGE -->
+            @if (aiTab === 'chatbot') {
+              <section class="card" style="max-width: 850px; margin: 0 auto;">
+                <div class="card-heading" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                  <div>
+                    <h3>Chatbot d'Orientation Médicale & Prise de Rendez-Vous</h3>
+                    <p>Posez vos questions ou décrivez vos symptômes. L'IA analyse et vous oriente vers le bon créneau.</p>
+                  </div>
+                </div>
+
+                <!-- Zone de messages -->
+                <div style="height: 380px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; background: #f8fafc; border-radius: 8px; margin: 15px 0;">
+                  @for (c of chatHistory; track $index) {
+                    <div [style.text-align]="c.sender === 'user' ? 'right' : 'left'">
+                      <div [style.background]="c.sender === 'user' ? '#00A09D' : '#ffffff'"
+                           [style.color]="c.sender === 'user' ? '#ffffff' : '#1e293b'"
+                           style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left;">
+                        <p style="margin: 0; font-size: 14px;">{{ c.text }}</p>
+                        
+                        @if (c.triage) {
+                          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 12px;">
+                            <span style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: bold;">
+                              Gravité : {{ c.triage.gravite }}
+                            </span>
+                            <span style="margin-left: 8px; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px;">
+                              Orientation : {{ c.triage.specialite_recommandee }}
+                            </span>
+
+                            @if (c.triage.avertissement_legal) {
+                              <p style="color: #b91c1c; font-size: 11px; margin: 8px 0 0 0; font-style: italic;">
+                                {{ c.triage.avertissement_legal }}
+                              </p>
+                            }
+
+                            @if (c.triage.creneaux_suggeres?.length) {
+                              <div style="margin-top: 10px;">
+                                <strong>Créneaux disponibles au cabinet :</strong>
+                                <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+                                  @for (slot of c.triage.creneaux_suggeres; track $index) {
+                                    <button class="btn btn-sm btn-primary" (click)="bookSlotFromChat(slot)" style="font-size: 12px;">
+                                      📅 {{ slot.date }} à {{ slot.heure }}
+                                    </button>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <span style="font-size: 10px; opacity: 0.7; display: block; margin-top: 4px; text-align: right;">{{ c.time }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Input Chat -->
+                <div style="display: flex; gap: 10px;">
+                  <input type="text" [(ngModel)]="chatInput" (keyup.enter)="sendChatMessage()" placeholder="Ex: J'ai de la fièvre et mal à la tête depuis ce matin..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                  <button class="odoo-btn-primary" (click)="sendChatMessage()" [disabled]="chatBusy || !chatInput.trim()">
+                    {{ chatBusy ? 'Analyse...' : 'Envoyer ➔' }}
+                  </button>
+                </div>
+              </section>
+            }
+
+            <!-- ONGLET 3 : SIMULATEUR CNSS / AMO -->
+            @if (aiTab === 'cnss') {
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <section class="card">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Calculateur Feuille de Soins AMO (Maroc)</h3>
+                      <p>Tarifs Nationaux de Référence (TNR), taux de couverture CNSS (70% ou 100% ALD) et ticket modérateur.</p>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Prestation Médicale</label>
+                      <select [(ngModel)]="cnssPrestation" (change)="calculateCNSS()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <option value="Consultation Généraliste">Consultation Généraliste (TNR: 150 DH)</option>
+                        <option value="Consultation Spécialiste">Consultation Spécialiste (TNR: 250 DH)</option>
+                        <option value="Acte Médical">Acte Médical Conventionné (TNR: 200 DH)</option>
+                        <option value="Échographie">Échographie (TNR: 350 DH)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Montant facturé au patient (DH)</label>
+                      <input type="number" [(ngModel)]="cnssMontant" (input)="calculateCNSS()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div>
+                      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" [(ngModel)]="cnssAld" (change)="calculateCNSS()">
+                        <span style="font-weight: 600; font-size: 13px;">Affection de Longue Durée (ALD) — Prise en charge 100%</span>
+                      </label>
+                    </div>
+                    <button class="odoo-btn-primary" (click)="calculateCNSS()">Recalculer les parts</button>
+                  </div>
+                </section>
+
+                <section class="card" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Décomposition de Prise en Charge</h3>
+                      <p>Montants officiels remboursables par la Caisse Nationale de Sécurité Sociale.</p>
+                    </div>
+                  </div>
+                  @if (cnssResult) {
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                      <div style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                          <span>Tarif National Conventionné (TNR) :</span>
+                          <strong>{{ cnssResult.tarif_national_reference_tnr }} DH</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #059669; font-weight: bold; font-size: 16px;">
+                          <span>Remboursement CNSS ({{ cnssResult.taux_remboursement_cnss_pct }}%) :</span>
+                          <span>{{ cnssResult.montant_rembourse_cnss }} DH</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #d97706;">
+                          <span>Ticket modérateur (part patient) :</span>
+                          <strong>{{ cnssResult.ticket_moderateur_patient }} DH</strong>
+                        </div>
+                        @if (cnssResult.part_depassement_honoraires > 0) {
+                          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b;">
+                            <span>Dépassement d'honoraires :</span>
+                            <span>{{ cnssResult.part_depassement_honoraires }} DH</span>
+                          </div>
+                        }
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px;">
+                          <span>Total payé par le patient :</span>
+                          <span>{{ cnssResult.total_a_payer_patient }} DH</span>
+                        </div>
+                      </div>
+
+                      <p style="font-size: 12px; color: #64748b; font-style: italic;">{{ cnssResult.mentions_legales }}</p>
+
+                      <button class="btn btn-primary" (click)="printFeuilleDeSoinsCNSS()">
+                        🖨️ Imprimer la Feuille de Soins CNSS
+                      </button>
+                    </div>
+                  }@else {
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                      Cliquez sur Calculer pour afficher la décomposition CNSS.
+                    </div>
+                  }
+                </section>
+              </div>
+            }
+
+            <!-- ONGLET 4 : PRÉDICTION NO-SHOW (ABSENCES AUX RDV) -->
+            @if (aiTab === 'noshow') {
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <section class="card">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Modèle Prédictif d'Absence (Machine Learning)</h3>
+                      <p>Algorithme prédictif évaluant la probabilité qu'un patient ne se présente pas à son rendez-vous.</p>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Délai de réservation (jours à l'avance)</label>
+                      <input type="number" [(ngModel)]="noshowDelai" (input)="predictNoShow()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Âge du patient</label>
+                      <input type="number" [(ngModel)]="noshowAge" (input)="predictNoShow()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div>
+                      <label style="font-weight: 600; font-size: 13px;">Historique de rendez-vous manqués</label>
+                      <input type="number" [(ngModel)]="noshowAbsences" (input)="predictNoShow()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div>
+                      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" [(ngModel)]="noshowSms" (change)="predictNoShow()">
+                        <span style="font-weight: 600; font-size: 13px;">Rappel SMS automatique activé</span>
+                      </label>
+                    </div>
+                    <button class="odoo-btn-primary" (click)="predictNoShow()">Calculer le score de risque</button>
+                  </div>
+                </section>
+
+                <section class="card" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Résultat de l'analyse prédictive</h3>
+                      <p>Recommandation opérationnelle pour le secrétariat médical.</p>
+                    </div>
+                  </div>
+                  @if (noshowResult) {
+                    <div style="display: flex; flex-direction: column; gap: 15px; text-align: center;">
+                      <div style="padding: 20px; border-radius: 8px; background: white; border: 1px solid #cbd5e1;">
+                        <div style="font-size: 38px; font-weight: 800;"
+                             [style.color]="noshowResult.niveau_risque === 'Élevé' ? '#dc2626' : (noshowResult.niveau_risque === 'Moyen' ? '#d97706' : '#059669')">
+                          {{ noshowResult.probabilite_absence_pct }}%
+                        </div>
+                        <div style="font-weight: bold; text-transform: uppercase; margin-top: 5px;"
+                             [style.color]="noshowResult.niveau_risque === 'Élevé' ? '#dc2626' : (noshowResult.niveau_risque === 'Moyen' ? '#d97706' : '#059669')">
+                          Niveau de risque : {{ noshowResult.niveau_risque }}
+                        </div>
+                      </div>
+
+                      <div style="background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 6px; font-size: 13px; text-align: left;">
+                        <strong>Action recommandée pour la secrétaire :</strong><br>
+                        {{ noshowResult.recommandation_secretaire }}
+                      </div>
+                    </div>
+                  }@else {
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                      Cliquez sur "Calculer le score" pour évaluer le risque de non-présentation.
+                    </div>
+                  }
+                </section>
+              </div>
+            }
+
 
           }@else if (activeKey==='parametres'){
             <!-- PARAMETRES -->
@@ -677,6 +1003,7 @@
                           @if (module.key==='patients'){<button class="odoo-k-act-btn" title="Ouvrir la fiche patient" (click)="openPatient(row)">◉</button>}
                           @if (module.key==='billing'){<button class="odoo-k-act-btn" title="Imprimer la facture" (click)="printDocument('invoice',row)">⎙</button>}
                           @if (module.key==='prescriptions'){<button class="odoo-k-act-btn" title="Imprimer l’ordonnance" (click)="printDocument('prescription',row)">⎙</button>}
+                          @if (module.key==='consultations'){<button class="odoo-k-act-btn" title="Imprimer l’ordonnance liée" (click)="printPrescriptionForConsultation(row)">💊</button>}
                           <button class="odoo-k-act-btn" title="Modifier" (click)="openEdit(row)">✎</button>
                           <button class="odoo-k-act-btn" title="Supprimer" (click)="remove(row)">×</button>
                         </div>
@@ -715,6 +1042,7 @@
                                 @if (module.key==='patients'){<button class="action-mini" title="Ouvrir la fiche patient" (click)="openPatient(row)">◉</button>}
                                 @if (module.key==='billing'){<button class="action-mini" title="Imprimer la facture" (click)="printDocument('invoice',row)">⎙</button>}
                                 @if (module.key==='prescriptions'){<button class="action-mini" title="Imprimer l’ordonnance" (click)="printDocument('prescription',row)">⎙</button>}
+                                @if (module.key==='consultations'){<button class="action-mini" title="Imprimer l’ordonnance liée" (click)="printPrescriptionForConsultation(row)">💊</button>}
                                 <button class="action-mini" title="Modifier" (click)="openEdit(row)">✎</button>
                                 <button class="action-mini" title="Supprimer" (click)="remove(row)">×</button>
                               </div>
@@ -799,7 +1127,7 @@
             <span class="avatar avatar-purple">{{patientInitial(selectedPatient)}}</span>
             <div>
               <span class="eyebrow">DOSSIER MÉDICAL PATIENT</span>
-              <h2>{{selectedPatient['nom']}}</h2>
+              <h2>{{patientName(selectedPatient['id'])}}</h2>
             </div>
           </div>
           <button class="icon-btn" (click)="closePatient()">×</button>
@@ -810,6 +1138,25 @@
           <div><small>Âge</small><b>{{display(selectedPatient['age'])}}</b></div>
           <div><small>Groupe sanguin</small><b>{{display(selectedPatient['groupeSanguin'])}}</b></div>
         </div>
+
+        <h3>Traitements & Ordonnances délivrées</h3>
+        <div class="profile-history">
+          @for(p of patientPrescriptions(selectedPatient['id']); track p['id']){
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;">
+              <div>
+                <b style="color: #0369a1;">Ordonnance #{{p['id']}} · {{p['date'] || 'Date du jour'}}</b>
+                <p style="margin: 2px 0 0; color: #475569; font-size: 13px;">{{getPrescriptionSummary(p['id'])}}</p>
+                <small style="color: #16a34a; font-weight: 600;">Statut : {{p['statut'] || 'Émise'}}</small>
+              </div>
+              <button class="btn btn-sm btn-light" style="border: 1px solid #cbd5e1;" (click)="printDocument('prescription', p)" title="Imprimer l'ordonnance">
+                🖨️ Imprimer
+              </button>
+            </div>
+          }@empty{
+            <p class="muted-note">Aucune ordonnance émise pour ce patient.</p>
+          }
+        </div>
+
         <h3>Historique des consultations</h3>
         <div class="profile-history">
           @for(c of patientConsultations(selectedPatient['id']); track c['id']){
