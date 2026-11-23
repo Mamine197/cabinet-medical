@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MediCAB - Gestion moderne de cabinet médical">
+  <title>MediCAB | Gestion médicale</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" data-page="dashboard">
+        <span class="brand-icon"><i class="fa-solid fa-heart-pulse"></i></span>
+        <span>Medi<span class="brand-light">CAB</span><small>MEDICAL MANAGEMENT</small></span>
+      </a>
+
+      <div class="workspace">
+        <span class="workspace-icon"><i class="fa-solid fa-hospital"></i></span>
+        <span><b>Cabinet Médical</b><small>Administration</small></span>
+        <i class="fa-solid fa-chevron-down workspace-arrow"></i>
+      </div>
+
+      <div class="nav-label">MENU PRINCIPAL</div>
+      <nav class="nav">
+        <button class="nav-link active" data-page="dashboard"><i class="fa-solid fa-grip"></i><span>Tableau de bord</span></button>
+        <button class="nav-link" data-page="patients"><i class="fa-solid fa-users"></i><span>Patients</span><span class="nav-count">128</span></button>
+        <button class="nav-link" data-page="appointments"><i class="fa-regular fa-calendar-check"></i><span>Rendez-vous</span></button>
+        <button class="nav-link" data-page="consultations"><i class="fa-solid fa-stethoscope"></i><span>Consultations</span></button>
+        <button class="nav-link" data-page="prescriptions"><i class="fa-solid fa-file-prescription"></i><span>Ordonnances</span></button>
+        <button class="nav-link" data-page="billing"><i class="fa-solid fa-file-invoice-dollar"></i><span>Facturation</span></button>
+      </nav>
+
+      <div class="nav-label">OUTILS</div>
+      <nav class="nav">
+        <button class="nav-link" data-page="assistant"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Assistant IA</span><span class="ai-tag">IA</span></button>
+        <button class="nav-link" data-page="users"><i class="fa-solid fa-user-shield"></i><span>Utilisateurs</span></button>
+        <button class="nav-link" data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i><span>Journal d'activité</span></button>
+        <button class="nav-link" data-page="settings"><i class="fa-solid fa-gear"></i><span>Paramètres</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="help-card">
+          <span class="help-icon"><i class="fa-regular fa-circle-question"></i></span>
+          <b>Besoin d'aide ?</b>
+          <p>Consultez le guide d'utilisation de MediCAB.</p>
+          <button id="helpBtn">Consulter le guide <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div class="profile-mini">
+          <div class="avatar avatar-purple">DM</div>
+          <div class="profile-info"><b>Dr. Martin</b><small>Médecin administrateur</small></div>
+          <button class="icon-btn" title="Profil"><i class="fa-solid fa-ellipsis"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-toggle" id="menuToggle" aria-label="Ouvrir le menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="breadcrumb"><span>Pages</span><i class="fa-solid fa-chevron-right"></i><b id="breadcrumbTitle">Tableau de bord</b></div>
+        <div class="topbar-right">
+          <label class="search-global"><i class="fa-solid fa-magnifying-glass"></i><input id="globalSearch" placeholder="Rechercher..." aria-label="Rechercher dans la page"><kbd>⌘ K</kbd></label>
+          <button class="icon-btn notification-btn" id="notificationBtn" aria-label="Notifications"><i class="fa-regular fa-bell"></i><span></span></button>
+          <div class="top-divider"></div>
+          <div class="top-profile"><div class="avatar avatar-purple">DM</div><div><b>Dr. Martin</b><small>Administrateur</small></div><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+      </header>
+
+      <section class="content" id="pageContent"></section>
+      <footer class="footer"><span>© 2026 MediCAB. Tous droits réservés.</span><span>Prototype de démonstration · Données fictives</span></footer>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header"><div><span class="eyebrow">MEDICAB</span><h2 id="modalTitle">Ajouter un élément</h2></div><button class="icon-btn" id="closeModal" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="modalForm"><div id="modalFields" class="form-grid"></div><div class="modal-actions"><button type="button" class="btn btn-light" id="cancelModal">Annuler</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Enregistrer</button></div></form>
+    </section>
+  </div>
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

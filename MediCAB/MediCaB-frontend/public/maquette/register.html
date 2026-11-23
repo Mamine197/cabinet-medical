@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscription | MediCAB</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"></span> MediCAB
+    </a>
+    <a class="back-link" href="index.html">Retour à l'accueil</a>
+  </header>
+
+  <main class="auth-layout">
+    <section class="visual-panel">
+      <span class="eyebrow">BIENVENUE CHEZ MEDICAB</span>
+      <h1>Un espace pensé pour simplifier la gestion de votre cabinet.</h1>
+      <p>Organisez votre activité et centralisez vos informations dans une interface claire et moderne.</p>
+      <div class="visual-card">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Commencez en quelques étapes</strong>
+          <p>Créez votre espace pour découvrir MediCAB.</p>
+        </div>
+        <span class="card-icon"></span>
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <div class="form-container">
+        <span class="form-symbol"></span>
+        <p class="form-kicker">COMMENCEZ ICI</p>
+        <h2>Créer un compte</h2>
+        <p class="muted">Remplissez les informations ci-dessous.</p>
+
+        <form id="registerForm">
+          <label for="fullname">Nom complet</label>
+          <input id="fullname" name="fullname" type="text"
+                 placeholder="Votre nom complet"
+                 autocomplete="name" required minlength="2">
+
+          <label for="email">Adresse e-mail</label>
+          <input id="email" name="email" type="email"
+                 placeholder="vous@exemple.com"
+                 autocomplete="email" required>
+
+          <label for="password">Mot de passe</label>
+          <input id="password" name="password" type="password"
+                 placeholder="8 caractères minimum"
+                 autocomplete="new-password" required minlength="8">
+
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <input id="confirmPassword" name="confirmPassword" type="password"
+                 placeholder="Répétez le mot de passe"
+                 autocomplete="new-password" required minlength="8">
+
+          <label class="remember">
+            <input id="terms" type="checkbox" required>
+            <span>J'accepte les conditions d'utilisation.</span>
+          </label>
+
+          <button class="primary-btn" type="submit">Créer mon compte <span></span></button>
+          <p id="registerMessage" class="message" role="status"></p>
+        </form>
+
+        <p class="switch-auth">Vous avez déjà un compte ?
+          <a href="login.html">Se connecter</a>
+        </p>
+        <p class="secure-note">Vos données doivent être traitées de manière sécurisée.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>

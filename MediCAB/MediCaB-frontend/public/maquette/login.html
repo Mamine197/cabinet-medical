@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion | MediCAB</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"></span> MediCAB
+    </a>
+    <a class="back-link" href="index.html">Retour à l'accueil</a>
+  </header>
+
+  <main class="auth-layout">
+    <section class="visual-panel">
+      <span class="eyebrow">VOTRE ESPACE SANTÉ</span>
+      <h1>La santé de vos patients, au cœur de votre quotidien.</h1>
+      <p>Retrouvez vos rendez-vous, vos patients et les informations de votre cabinet dans un espace simple et sécurisé.</p>
+      <div class="visual-card">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Votre cabinet, en un seul endroit</strong>
+          <p>Une gestion plus fluide, chaque jour.</p>
+        </div>
+        <span class="card-icon"></span>
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <div class="form-container">
+        <span class="form-symbol"></span>
+        <p class="form-kicker">RAVI DE VOUS REVOIR</p>
+        <h2>Connexion</h2>
+        <p class="muted">Connectez-vous à votre espace MediCAB.</p>
+
+        <form id="loginForm">
+          <label for="email">Adresse e-mail</label>
+          <input id="email" name="email" type="email"
+                 placeholder="vous@exemple.com" autocomplete="email" required>
+
+          <div class="label-row">
+            <label for="password">Mot de passe</label>
+            <a href="#" id="forgotLink">Mot de passe oublié ?</a>
+          </div>
+          <input id="password" name="password" type="password"
+                 placeholder="Votre mot de passe"
+                 autocomplete="current-password" required minlength="8">
+
+          <label class="remember">
+            <input type="checkbox" name="remember">
+            <span>Se souvenir de moi</span>
+          </label>
+
+          <button class="primary-btn" type="submit">Se connecter <span>→</span></button>
+          <p id="loginMessage" class="message" role="status"></p>
+        </form>
+
+        <p class="switch-auth">Vous n'avez pas de compte ?
+          <a href="register.html">Créer un compte</a>
+        </p>
+        <p class="secure-note">Votre espace est conçu pour protéger vos informations.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>

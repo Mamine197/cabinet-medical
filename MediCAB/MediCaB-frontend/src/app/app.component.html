@@ -1,0 +1,851 @@
+@if (!isAuthenticated){
+  <div class="auth-screen">
+    <div class="auth-brand">
+      <div class="brand-logo">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#fff" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.7 4.5 6.6 4.5c2 0 3.6 1 5.4 3 1.8-2 3.4-3 5.4-3 3.9 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21Z"/>
+            <path fill="none" stroke="#4c76ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.5h4l1.5-3 2.5 6 2-4.5 1 1.5h4"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name"><span class="medi">Medi</span><span class="cab">CAB</span></div>
+          <div class="brand-subtitle">MEDICAL MANAGEMENT · ERP ODOO STYLE</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-layout">
+      <section class="auth-intro">
+        <p class="auth-eyebrow">PLATEFORME ERP DE GESTION MÉDICALE</p>
+        <h1>La gestion de votre cabinet avec l’expérience Odoo.</h1>
+        <p>Retrouvez un lanceur d'applications moderne et personnalisé pour l’Administrateur, le Médecin et la Secrétaire : patients, consultations, rendez-vous, ordonnances, facturation et stock.</p>
+        <div class="auth-feature">
+          <span>⊞</span>
+          <div>
+            <strong>Grille d'applications Odoo</strong>
+            <small>Lanceur ergonomique avec icônes ERP riches et navigation instantanée.</small>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <span>👥</span>
+          <div>
+            <strong>Vues personnalisées par rôle</strong>
+            <small>Espaces adaptés pour Administrateur, Praticien et Secrétariat.</small>
+          </div>
+        </div>
+      </section>
+      <section class="auth-card">
+        <div class="auth-card-icon">⊞</div>
+
+        @if (authMode==='login'){
+          <p class="auth-kicker">AUTHENTIFICATION ODOO</p>
+          <h2>Connexion</h2>
+          <p class="auth-subtitle">Connectez-vous à votre espace cabinet MediCAB.</p>
+          <form (ngSubmit)="login()">
+            <label for="login-email">Adresse e-mail</label>
+            <input id="login-email" name="email" type="email" [(ngModel)]="authForm.email" autocomplete="username" placeholder="nom&#64;exemple.com" required>
+            <label for="login-password">Mot de passe</label>
+            <input id="login-password" name="password" type="password" [(ngModel)]="authForm.password" autocomplete="current-password" placeholder="Votre mot de passe" required>
+            @if (authError){<div class="auth-error" role="alert">{{authError}}</div>}
+            <button class="auth-submit" type="submit" [disabled]="authBusy">{{authBusy?'Connexion…':'Se connecter'}}</button>
+          </form>
+          <p class="auth-switch">Vous n’avez pas de compte ? <button type="button" (click)="setAuthMode('register')">Créer un compte</button></p>
+          <div class="demo-credentials">
+            <strong>Compte administrateur :</strong>
+            <span>admin&#64;medicab.ma · Admin123!</span>
+          </div>
+        }@else{
+          <p class="auth-kicker">NOUVEAU COMPTE</p>
+          <h2>Inscription</h2>
+          <p class="auth-subtitle">Créez votre accès à MediCAB.</p>
+          <form (ngSubmit)="register()">
+            <label for="register-name">Nom complet</label>
+            <input id="register-name" name="name" [(ngModel)]="authForm.name" placeholder="Votre nom complet" required>
+            <label for="register-email">Adresse e-mail</label>
+            <input id="register-email" name="email" type="email" [(ngModel)]="authForm.email" placeholder="nom&#64;exemple.com" required>
+            <label for="register-phone">Téléphone</label>
+            <input id="register-phone" name="phone" type="tel" [(ngModel)]="authForm.phone" placeholder="06 00 00 00 00">
+            <label for="register-role">Fonction</label>
+            <select id="register-role" name="role" [(ngModel)]="authForm.role">
+              <option value="Médecin">Médecin</option>
+              <option value="Secrétaire">Secrétaire</option>
+            </select>
+            <label for="register-password">Mot de passe (8 caractères minimum)</label>
+            <input id="register-password" name="password" type="password" [(ngModel)]="authForm.password" minlength="8" required>
+            <label for="register-confirm">Confirmer le mot de passe</label>
+            <input id="register-confirm" name="confirmPassword" type="password" [(ngModel)]="authForm.confirmPassword" required>
+            @if (authError){<div class="auth-error" role="alert">{{authError}}</div>}
+            <button class="auth-submit" type="submit" [disabled]="authBusy">{{authBusy?'Création…':'Créer mon compte'}}</button>
+          </form>
+          <p class="auth-switch">Vous avez déjà un compte ? <button type="button" (click)="setAuthMode('login')">Se connecter</button></p>
+        }
+        <p class="auth-disclaimer">Plateforme de gestion de cabinet médical · Interface Odoo 17/18.</p>
+      </section>
+    </div>
+    <footer class="auth-footer">© 2026 MediCAB · Interface Odoo ERP</footer>
+  </div>
+}@else{
+  <!-- ODOO ERP FULL INTERFACE -->
+  <div class="odoo-wrapper" (click)="closeAllPopups()">
+    <!-- 1. Odoo Topbar -->
+    <header class="odoo-topbar" (click)="$event.stopPropagation()">
+      <div class="odoo-topbar-left">
+        <!-- 9-dots Odoo App Launcher Switcher -->
+        <button class="odoo-launcher-btn" [class.active]="activeKey==='dashboard'" (click)="openLauncher()" title="Grille d'applications Odoo">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </button>
+
+        <div class="odoo-brand-title" (click)="openLauncher()" title="Retour au menu principal">
+          <span class="brand-medi">Medi</span><span class="brand-cab">CAB</span>
+        </div>
+
+        @if (activeKey !== 'dashboard') {
+          <span class="odoo-nav-divider">/</span>
+          <span class="odoo-current-app-name">{{pageTitle}}</span>
+        }
+      </div>
+
+      <div class="odoo-topbar-right">
+        <!-- Live Role Switcher (Admin / Médecin / Secrétaire) -->
+        <div class="odoo-role-switcher" title="Changer d'espace métier Odoo">
+          <button class="odoo-role-pill" [class.active]="isAdmin" (click)="switchRole('Administrateur')">
+            👑 <span>Admin</span>
+          </button>
+          <button class="odoo-role-pill" [class.active]="isDoctor" (click)="switchRole('Médecin')">
+            🩺 <span>Médecin</span>
+          </button>
+          <button class="odoo-role-pill" [class.active]="isSecretary" (click)="switchRole('Secrétaire')">
+            📋 <span>Secrétaire</span>
+          </button>
+        </div>
+
+        <!-- AI Copilot Button (matching Odoo screenshot) -->
+        <button class="odoo-ai-pill-btn" (click)="toggleAiDrawer(); $event.stopPropagation()" title="Assistant IA Copilot">
+          <i>✦</i><span>AI</span>
+        </button>
+
+        <!-- Discussions / Chat (with red unread badge) -->
+        <button class="odoo-tool-btn" (click)="toggleDiscuss(); $event.stopPropagation()" title="Discussion d'équipe">
+          💬
+          <span class="odoo-tool-badge">3</span>
+        </button>
+
+        <!-- Activités / Clock -->
+        <button class="odoo-tool-btn" (click)="toggleActivities(); $event.stopPropagation()" title="Activités & alertes">
+          🕒
+          <span class="odoo-tool-badge" style="background:#0284c7;">{{lowStockCount() + 2}}</span>
+        </button>
+
+        <!-- User Profile Avatar (Green rounded square B with online dot, matching screenshot) -->
+        <div class="odoo-user-badge-wrap" (click)="toggleProfileDropdown(); $event.stopPropagation()" title="{{currentUser?.name}} ({{currentUser?.role}})">
+          <div class="odoo-user-badge">
+            {{userInitials.charAt(0) || 'B'}}
+          </div>
+          <span class="odoo-online-dot"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ODOO DROPDOWNS & PANELS -->
+    <!-- Discuss Dropdown -->
+    @if (discussOpen) {
+      <div class="odoo-dropdown-panel odoo-discuss-box" (click)="$event.stopPropagation()">
+        <div class="odoo-discuss-head">
+          <div>
+            <h3>💬 Discussion d'équipe</h3>
+            <small style="color:#fbcfe8;">Canal #secrétariat-médecins</small>
+          </div>
+          <button class="action-mini" style="background:transparent; border:none; color:white; font-size:16px;" (click)="discussOpen=false">×</button>
+        </div>
+        <div class="odoo-discuss-messages">
+          @for (msg of discussMessages; track msg.time + msg.sender) {
+            <div class="odoo-msg-bubble">
+              <div class="odoo-msg-top">
+                <b>{{msg.sender}} <small style="color:#64748b;">({{msg.role}})</small></b>
+                <small>{{msg.time}}</small>
+              </div>
+              <div class="odoo-msg-body">{{msg.text}}</div>
+            </div>
+          }
+        </div>
+        <form class="odoo-discuss-input-box" (ngSubmit)="sendDiscussMessage()">
+          <input [(ngModel)]="newDiscussMessage" name="newDiscussMessage" placeholder="Écrire un message d'équipe...">
+          <button type="submit" class="odoo-btn-primary" style="padding: 5px 12px;">Envoyer</button>
+        </form>
+      </div>
+    }
+
+    <!-- Activities Dropdown -->
+    @if (activitiesOpen) {
+      <div class="odoo-dropdown-panel odoo-activities-box" (click)="$event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <b style="font-size:13px; color:#1e293b;">📌 Activités du Cabinet</b>
+          <button class="action-mini" (click)="activitiesOpen=false">×</button>
+        </div>
+        <div class="odoo-act-item" (click)="go('appointments')">
+          <span style="font-size:18px;">📅</span>
+          <div>
+            <b style="font-size:12px; display:block;">Rendez-vous programmés</b>
+            <small style="color:#64748b;">{{count('appointments')}} consultation(s) dans le planning</small>
+          </div>
+        </div>
+        <div class="odoo-act-item" (click)="go('billing')">
+          <span style="font-size:18px;">💳</span>
+          <div>
+            <b style="font-size:12px; display:block;">Facturation & Règlements</b>
+            <small style="color:#64748b;">{{count('billing')}} facture(s) enregistrée(s)</small>
+          </div>
+        </div>
+        <div class="odoo-act-item" (click)="go('articles')">
+          <span style="font-size:18px;">📦</span>
+          <div>
+            <b style="font-size:12px; display:block;">Stock & Consommables</b>
+            <small style="color:#64748b;">{{lowStockCount()}} article(s) à surveiller</small>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Profile Dropdown -->
+    @if (profileDropdownOpen) {
+      <div class="odoo-dropdown-panel odoo-profile-box" (click)="$event.stopPropagation()">
+        <div class="odoo-profile-head">
+          <div class="odoo-user-badge">{{userInitials.charAt(0) || 'B'}}</div>
+          <div>
+            <b style="font-size:12px; display:block;">{{currentUser?.name}}</b>
+            <small style="color:var(--odoo-purple); font-weight:700;">{{currentUser?.role}}</small>
+          </div>
+        </div>
+        <div class="odoo-profile-menu">
+          <button (click)="openLauncher()">⊞ Toutes les applications</button>
+          <button (click)="go('parametres')">⚙ Paramètres du compte</button>
+          <button (click)="exportData(); profileDropdownOpen=false">⇩ Exporter la base</button>
+          <button style="color:#e11d48;" (click)="logout()">↪ Se déconnecter</button>
+        </div>
+      </div>
+    }
+
+    <!-- AI Copilot Modal / Drawer -->
+    @if (aiDrawerOpen) {
+      <div class="modal-backdrop open" (click)="aiDrawerOpen=false">
+        <section class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" style="max-width: 600px;">
+          <div class="modal-header">
+            <div class="modal-title-wrap">
+              <span class="avatar" style="background: linear-gradient(135deg, #f43f5e, #8b5cf6); color: white;">✦</span>
+              <div>
+                <span class="eyebrow">ASSISTANT COPILOT CLINIQUE</span>
+                <h2>Assistant IA MediCAB</h2>
+              </div>
+            </div>
+            <button class="icon-btn" (click)="aiDrawerOpen=false">×</button>
+          </div>
+          <div style="padding: 10px 0;">
+            <p style="color: #64748b; font-size: 12px; margin-bottom: 12px;">
+              Préparez rapidement des synthèses, des comptes rendus ou des modèles d'ordonnances pour vos patients.
+            </p>
+            <div class="field">
+              <label for="ai-copilot-input">Demande ou note médicale à formuler :</label>
+              <textarea id="ai-copilot-input" rows="5" [(ngModel)]="assistantText" placeholder="Ex: Rédiger compte rendu de consultation pour asthme modéré avec prescription ventoline..."></textarea>
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom: 15px;">
+              <button class="btn btn-light btn-sm" (click)="assistantText='Patient venu pour consultation de routine. Bilan sanguin normal, tension 12/8. Renouvellement ordonnance.'">Modèle consultation</button>
+              <button class="btn btn-light btn-sm" (click)="assistantText='Ordonnance : Paracétamol 1g (1 cp 3x/j si douleur), Sirop antitussif 1 c.à.s le soir pendant 5 jours.'">Modèle ordonnance</button>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-light" (click)="aiDrawerOpen=false">Fermer</button>
+            <button type="button" class="btn btn-primary" (click)="saveAssistantDraft(); aiDrawerOpen=false" [disabled]="!assistantText.trim()">✓ Enregistrer en brouillon</button>
+          </div>
+        </section>
+      </div>
+    }
+
+    <!-- 2. Main Content Area -->
+    @if (activeKey === 'dashboard') {
+      <!-- ODOO HOME SCREEN (Apps Launcher Grid matching screenshot) -->
+      <main class="odoo-home-container">
+        <div class="odoo-home-header">
+          <div class="odoo-home-search-wrap">
+            <i>⌕</i>
+            <input [(ngModel)]="appSearch" placeholder="Rechercher une application..." aria-label="Rechercher une application">
+          </div>
+          <div class="odoo-role-indicator">
+            <span>Espace actif : <b>{{currentUser?.role}}</b></span>
+            <span>·</span>
+            <span>{{filteredOdooApps.length}} applications disponibles</span>
+          </div>
+        </div>
+
+        <!-- The 6-columns Odoo App Grid (Exact visual match to screenshot) -->
+        <section class="odoo-app-grid">
+          @for (app of filteredOdooApps; track app.key) {
+            <button class="odoo-app-card" (click)="go(app.key)" [attr.aria-label]="app.name" [title]="app.description">
+              <div class="odoo-app-tile">
+                <div [innerHTML]="odooIcon(app.key)"></div>
+                @if (app.badge) {
+                  <span class="odoo-app-badge" [class.info]="app.badgeType==='info'" [class.ai]="app.badgeType==='ai'">
+                    {{app.badge}}
+                  </span>
+                }
+              </div>
+              <span class="odoo-app-label">{{app.name}}</span>
+            </button>
+          }
+        </section>
+      </main>
+    } @else {
+      <!-- ODOO MODULE VIEW (When an app is clicked) -->
+      <div class="odoo-module-view">
+        <!-- Odoo Control Panel -->
+        <div class="odoo-control-panel">
+          <div class="odoo-cp-left">
+            @if (activeKey !== 'rapports' && activeKey !== 'parametres' && activeKey !== 'assistant') {
+              <button class="odoo-btn-primary" (click)="openCreate()">＋ Nouveau</button>
+            }
+            <button class="odoo-btn-secondary" (click)="exportData()">⇩ Exporter</button>
+            <button class="odoo-btn-secondary" (click)="openLauncher()">⊞ Retour aux Apps</button>
+          </div>
+
+          <div class="odoo-cp-center">
+            <div class="odoo-search-pill-box">
+              <span style="color:#94a3b8;">⌕</span>
+              <input [(ngModel)]="search" placeholder="Rechercher dans {{pageTitle}}...">
+              @if (search) {
+                <button class="icon-btn" style="width:20px; height:20px; border:none; background:transparent; color:#94a3b8;" (click)="search=''">×</button>
+              }
+            </div>
+          </div>
+
+          <div class="odoo-cp-right">
+            @if (activeKey !== 'rapports' && activeKey !== 'parametres' && activeKey !== 'assistant') {
+              <div class="odoo-view-switchers">
+                <button class="odoo-view-btn" [class.active]="viewMode==='kanban'" (click)="viewMode='kanban'" title="Vue Kanban">
+                  <span>⊞</span><span>Kanban</span>
+                </button>
+                <button class="odoo-view-btn" [class.active]="viewMode==='list'" (click)="viewMode='list'" title="Vue Liste">
+                  <span>▤</span><span>Liste</span>
+                </button>
+              </div>
+            }
+            <span style="font-size:12px; color:#64748b; font-weight:600;">{{activeRecords.length}} enregistrement(s)</span>
+          </div>
+        </div>
+
+        <!-- Sub-views -->
+        <div class="content" style="padding: 20px 24px;">
+          @if (activeKey==='appointments'){
+            <div class="page-heading">
+              <div>
+                <span class="eyebrow">PLANNING DU CABINET</span>
+                <h1>Agenda des consultations</h1>
+                <p>Visualisez les rendez-vous par jour, semaine ou mois et gérez les créneaux praticiens.</p>
+              </div>
+              <div class="heading-actions">
+                <button class="odoo-btn-primary" (click)="openCreate()">＋ Nouveau rendez-vous</button>
+              </div>
+            </div>
+
+            <!-- Calendar View -->
+            <section class="card calendar-card" style="margin-bottom: 24px;">
+              <div class="calendar-toolbar">
+                <div class="calendar-modes">
+                  <button class="btn btn-light btn-sm" [class.active]="calendarMode==='day'" (click)="calendarMode='day'">Jour</button>
+                  <button class="btn btn-light btn-sm" [class.active]="calendarMode==='week'" (click)="calendarMode='week'">Semaine</button>
+                  <button class="btn btn-light btn-sm" [class.active]="calendarMode==='month'" (click)="calendarMode='month'">Mois</button>
+                </div>
+                <div class="calendar-date">
+                  <button class="icon-btn" (click)="shiftCalendar(-(calendarMode==='day'?1:calendarMode==='week'?7:30))">‹</button>
+                  <input type="date" [(ngModel)]="calendarDate">
+                  <button class="icon-btn" (click)="shiftCalendar(calendarMode==='day'?1:calendarMode==='week'?7:30)">›</button>
+                  <button class="btn btn-light btn-sm" (click)="goToday()">Aujourd’hui</button>
+                </div>
+              </div>
+              <div class="calendar-grid" [class.month-grid]="calendarMode==='month'">
+                @for(day of calendarDays; track day.date){
+                  <div class="calendar-day">
+                    <div class="calendar-day-head">
+                      <b>{{day.label}}</b>
+                      <small>{{appointmentsFor(day.date).length}} RDV</small>
+                    </div>
+                    @for(rdv of appointmentsFor(day.date); track rdv['id']){
+                      <button class="calendar-event" (click)="openEdit(rdv)">
+                        <b>{{rdv['heure']||'—'}}</b>
+                        <span>{{patientName(rdv['patientId'])}}</span>
+                        <small>{{rdv['motif']}}</small>
+                      </button>
+                    }@empty{
+                      <p class="calendar-empty">Aucun rendez-vous</p>
+                    }
+                    <button class="calendar-add" (click)="calendarDate=day.date;openCreate()">＋ Ajouter</button>
+                  </div>
+                }
+              </div>
+            </section>
+
+            <!-- Table / Kanban of Appointments -->
+            @if (viewMode === 'kanban') {
+              <div class="odoo-kanban-container" style="padding: 0;">
+                @for (rdv of activeRecords; track rdv['id']) {
+                  <div class="odoo-kanban-card" (click)="openEdit(rdv)">
+                    <div class="odoo-k-head">
+                      <div class="odoo-k-avatar" style="background:#eff6ff; color:#2563eb;">📅</div>
+                      <div class="odoo-k-info">
+                        <div class="odoo-k-title">{{patientName(rdv['patientId'])}}</div>
+                        <div class="odoo-k-sub">{{rdv['date']}} à {{rdv['heure'] || '--:--'}} · {{rdv['motif'] || 'Consultation'}}</div>
+                      </div>
+                      <span class="status-pill" [ngClass]="statusClass(rdv['statut'])">{{rdv['statut']}}</span>
+                    </div>
+                    <div class="odoo-k-footer">
+                      <b class="id-tag">{{rdv['id']}}</b>
+                      <div class="odoo-k-actions" (click)="$event.stopPropagation()">
+                        <button class="odoo-k-act-btn" title="Modifier" (click)="openEdit(rdv)">✎</button>
+                        <button class="odoo-k-act-btn" title="Supprimer" (click)="remove(rdv)">×</button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <section class="card table-card">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Date</th><th>Heure</th><th>Patient</th><th>Motif</th><th>Statut</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      @for(rdv of activeRecords; track rdv['id']){
+                        <tr>
+                          <td>{{rdv['date']}}</td>
+                          <td>{{rdv['heure']}}</td>
+                          <td><b>{{patientName(rdv['patientId'])}}</b></td>
+                          <td>{{rdv['motif']}}</td>
+                          <td><span class="status-pill" [ngClass]="statusClass(rdv['statut'])">{{rdv['statut']}}</span></td>
+                          <td><button class="action-mini" (click)="openEdit(rdv)">✎</button></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            }
+
+          }@else if (activeKey==='rapports'){
+            <!-- STATS & DASHBOARD -->
+            <div class="page-heading">
+              <div>
+                <span class="eyebrow">PILOTAGE DE L’ACTIVITÉ</span>
+                <h1>Tableaux de bord & statistiques</h1>
+                <p>Suivi en temps réel de l’activité médicale, des consultations et de la facturation.</p>
+              </div>
+              <button class="odoo-btn-secondary" (click)="exportData()">⇩ Exporter les données</button>
+            </div>
+            <section class="card report-filters" style="margin-bottom: 20px;">
+              <div class="field"><label>Du</label><input type="date" [(ngModel)]="reportStart"></div>
+              <div class="field"><label>Au</label><input type="date" [(ngModel)]="reportEnd"></div>
+              <button class="odoo-btn-primary" (click)="notify('Période du rapport mise à jour.')">Appliquer la période</button>
+            </section>
+            <div class="grid stats-grid">
+              <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon green">DH</span><span class="stat-change">Finance</span></div>
+                <div class="stat-label">Chiffre d’affaires facturé</div>
+                <div class="stat-value">{{reportRevenue | number:'1.0-2'}} DH</div>
+                <div class="stat-foot">Sur la période</div>
+              </article>
+              <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon orange">▤</span><span class="stat-change neutral">Documents</span></div>
+                <div class="stat-label">Factures émises</div>
+                <div class="stat-value">{{reportInvoices.length}}</div>
+                <div class="stat-foot">Sur la période</div>
+              </article>
+              <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon blue">📅</span><span class="stat-change">Agenda</span></div>
+                <div class="stat-label">Rendez-vous planifiés</div>
+                <div class="stat-value">{{reportAppointments}}</div>
+                <div class="stat-foot">Sur la période</div>
+              </article>
+              <article class="card stat-card">
+                <div class="stat-top"><span class="stat-icon purple">👥</span><span class="stat-change neutral">Patientèle</span></div>
+                <div class="stat-label">Patients inscrits</div>
+                <div class="stat-value">{{count('patients')}}</div>
+                <div class="stat-foot">Total cabinet</div>
+              </article>
+            </div>
+            <section class="card table-card" style="margin-top: 20px;">
+              <div class="card-heading" style="padding: 20px 20px 0;">
+                <div><h3>Factures de la période</h3><p>Montants facturés et statut de règlement.</p></div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Référence</th><th>Date</th><th>Patient</th><th>Montant</th><th>Statut</th></tr></thead>
+                  <tbody>
+                    @for(f of reportInvoices; track f['id']){
+                      <tr>
+                        <td><b class="id-tag">{{f['id']}}</b></td>
+                        <td>{{f['date']}}</td>
+                        <td><b>{{patientName(f['patientId'])}}</b></td>
+                        <td><b>{{f['montant']}} DH</b></td>
+                        <td><span class="status-pill" [ngClass]="statusClass(f['statut'])">{{f['statut']}}</span></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+          }@else if (activeKey==='assistant'){
+            <!-- ASSISTANT IA -->
+            <div class="page-heading">
+              <div>
+                <span class="eyebrow">COPILOT MÉDICAL</span>
+                <h1>Assistant IA MediCAB</h1>
+                <p>Espace de préparation et de rédaction de notes cliniques assistée par intelligence artificielle.</p>
+              </div>
+            </div>
+            <section class="card assistant-card">
+              <div class="assistant-symbol">✦</div>
+              <h2>Assistant de rédaction clinique</h2>
+              <p>Saisissez les observations ou éléments cliniques pour générer une note médicale vérifiée.</p>
+              <label for="ai-draft-full">Votre note ou demande :</label>
+              <textarea id="ai-draft-full" rows="7" [(ngModel)]="assistantText" placeholder="Saisissez une note médicale à préparer..."></textarea>
+              <div class="heading-actions" style="margin-top: 15px;">
+                <button class="odoo-btn-primary" (click)="saveAssistantDraft()" [disabled]="!assistantText.trim()">✓ Enregistrer le brouillon</button>
+                <button class="odoo-btn-secondary" (click)="assistantText=''">Effacer</button>
+              </div>
+            </section>
+
+          }@else if (activeKey==='parametres'){
+            <!-- PARAMETRES -->
+            <div class="page-heading">
+              <div>
+                <span class="eyebrow">CONFIGURATION ERP</span>
+                <h1>Paramètres généraux</h1>
+                <p>Gestion des données locales, sauvegardes et configuration de la structure médicale.</p>
+              </div>
+            </div>
+            <div class="grid settings-grid">
+              <section class="card">
+                <div class="card-heading"><div><h3>Sauvegarde des données</h3><p>Téléchargez une copie JSON complète des données.</p></div></div>
+                <button class="odoo-btn-primary" (click)="exportData()">⇩ Exporter la base JSON</button>
+              </section>
+              <section class="card">
+                <div class="card-heading"><div><h3>Réinitialisation</h3><p>Restaurer les données de démonstration du cabinet.</p></div></div>
+                <button class="btn btn-danger" (click)="reset()">Réinitialiser les données</button>
+              </section>
+              <section class="card">
+                <div class="card-heading"><div><h3>Compte connecté</h3><p>{{currentUser?.name}} · {{currentUser?.email}} ({{currentUser?.role}})</p></div></div>
+                <button class="odoo-btn-secondary" (click)="logout()">↪ Se déconnecter</button>
+              </section>
+            </div>
+
+          }@else if (activeKey==='discussion'){
+            <!-- ODOO DISCUSS APPLICATION PAGE -->
+            <div class="page-heading">
+              <div>
+                <span class="eyebrow">COMMUNICATION D'ÉQUIPE</span>
+                <h1>Discussion & Messagerie interne</h1>
+                <p>Échangez instantanément entre praticiens, secrétariat et administration du cabinet.</p>
+              </div>
+              <div class="heading-actions">
+                <button class="odoo-btn-secondary" (click)="openLauncher()">⊞ Retour aux Apps</button>
+              </div>
+            </div>
+
+            <div class="odoo-discuss-page">
+              <!-- Sidebar: Channels & Direct Contacts -->
+              <aside class="odoo-discuss-sidebar">
+                <div class="odoo-discuss-sec-title">Boîte de réception</div>
+                <button class="odoo-discuss-nav-btn" [class.active]="activeChannel==='inbox'" (click)="activeChannel='inbox'">
+                  <span>📥</span>
+                  <span>Boîte de réception</span>
+                  <span class="odoo-discuss-badge">3</span>
+                </button>
+                <button class="odoo-discuss-nav-btn" [class.active]="activeChannel==='starred'" (click)="activeChannel='starred'">
+                  <span>⭐</span>
+                  <span>Messages importants</span>
+                </button>
+
+                <div class="odoo-discuss-sec-title">
+                  <span>Canaux</span>
+                  <button class="action-mini" style="width:20px; height:20px; border:none; background:transparent;" title="Nouveau canal" (click)="notify('Canal disponible : #secrétariat-médecins')">＋</button>
+                </div>
+                @for (ch of channels; track ch.id) {
+                  <button class="odoo-discuss-nav-btn" [class.active]="activeChannel===ch.id" (click)="activeChannel=ch.id">
+                    <span style="font-weight:700; color:var(--odoo-purple);">#</span>
+                    <span>{{ch.name.replace('#', '')}}</span>
+                    @if (ch.unread) {
+                      <span class="odoo-discuss-badge">{{ch.unread}}</span>
+                    }
+                  </button>
+                }
+
+                <div class="odoo-discuss-sec-title">Membres du Cabinet</div>
+                @for (contact of directContacts; track contact.name) {
+                  <button class="odoo-discuss-nav-btn" [class.active]="activeChannel===contact.name" (click)="activeChannel=contact.name">
+                    <span class="odoo-online-dot" style="position:static; display:inline-block; margin-right:4px;"></span>
+                    <span>{{contact.name}}</span>
+                    <small style="color:#94a3b8; font-size:9px; margin-left:auto;">{{contact.role}}</small>
+                  </button>
+                }
+              </aside>
+
+              <!-- Main Chat Area -->
+              <main class="odoo-discuss-chat-panel">
+                <div class="odoo-chat-header">
+                  <div>
+                    <h2>💬 {{activeChannel}}</h2>
+                    <small style="color:#64748b;">Canal actif · Échanges sécurisés en temps réel</small>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <button class="odoo-btn-secondary" (click)="notify('Membres connectés : Dr. Anas Boudil, Fatima Zahra, Dr. Anas Boudil (Admin)')">👥 3 membres en ligne</button>
+                  </div>
+                </div>
+
+                <!-- Messages Timeline -->
+                <div class="odoo-chat-messages">
+                  @for (msg of discussMessages; track msg.time + msg.sender + msg.text) {
+                    <div class="odoo-chat-row">
+                      <div class="odoo-chat-avatar">{{msg.avatar}}</div>
+                      <div class="odoo-chat-content">
+                        <div class="odoo-chat-meta">
+                          <b>{{msg.sender}}</b>
+                          <span class="status-pill" [ngClass]="msg.role === 'Médecin' ? 'status-positive' : msg.role === 'Secrétaire' ? 'status-pending' : 'status-neutral'" style="font-size:9px; padding:2px 6px;">{{msg.role}}</span>
+                          <small>{{msg.time}}</small>
+                        </div>
+                        <div class="odoo-chat-text">{{msg.text}}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Quick Responses -->
+                <div class="odoo-chat-quick-replies">
+                  <span style="font-size:11px; color:#94a3b8; align-self:center;">Réponses rapides :</span>
+                  <button type="button" class="odoo-quick-pill" (click)="sendDiscussMessage('Patient en salle d’attente, dossier prêt.')">📌 Patient en salle d’attente</button>
+                  <button type="button" class="odoo-quick-pill" (click)="sendDiscussMessage('Ordonnance imprimée et remise au patient.')">📄 Ordonnance remise</button>
+                  <button type="button" class="odoo-quick-pill" (click)="sendDiscussMessage('Facture réglée par carte bancaire.')">💳 Facture réglée</button>
+                  <button type="button" class="odoo-quick-pill" (click)="sendDiscussMessage('Urgence : patient prioritaire en attente.')">🚨 Urgence prioritaire</button>
+                </div>
+
+                <!-- Input Bar -->
+                <form class="odoo-chat-input-bar" (ngSubmit)="sendDiscussMessage()">
+                  <input [(ngModel)]="newDiscussMessage" name="pageChatMessage" placeholder="Écrire un message dans {{activeChannel}}... (Appuyez sur Entrée)">
+                  <button type="submit" class="odoo-btn-primary" [disabled]="!newDiscussMessage.trim()">Envoyer</button>
+                </form>
+              </main>
+            </div>
+
+          }@else {
+            <!-- GENERIC MODULES (Patients, Consultations, Facturation, Fournisseurs, Users, Roles, etc.) -->
+            @if (activeModule; as module){
+              <div class="page-heading">
+                <div class="module-page-title">
+                  <span class="module-title-icon" [innerHTML]="iconFor(module.key)"></span>
+                  <div>
+                    <span class="eyebrow">{{module.group}}</span>
+                    <h1>{{module.title}}</h1>
+                    <p>{{module.description}}</p>
+                  </div>
+                </div>
+                <div class="heading-actions">
+                  <button class="odoo-btn-secondary" (click)="exportData()">⇩ Exporter</button>
+                  <button class="odoo-btn-primary" (click)="openCreate()">＋ Nouveau</button>
+                </div>
+              </div>
+
+              <!-- Kanban or List View -->
+              @if (viewMode === 'kanban') {
+                <div class="odoo-kanban-container" style="padding: 0;">
+                  @for (row of activeRecords; track row['id']) {
+                    <div class="odoo-kanban-card" (click)="openEdit(row)">
+                      <div class="odoo-k-head">
+                        <div class="odoo-k-avatar">
+                          {{ (row['nom'] || row['designation'] || row['code'] || row['id'] || 'M').toString().charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="odoo-k-info">
+                          <div class="odoo-k-title">{{cardTitle(row, module.key)}}</div>
+                          <div class="odoo-k-sub">{{cardSubtitle(row, module.key)}}</div>
+                        </div>
+                        @if (row['statut']) {
+                          <span class="status-pill" [ngClass]="statusClass(row['statut'])">{{row['statut']}}</span>
+                        }
+                      </div>
+                      <div class="odoo-k-footer">
+                        <b class="id-tag">{{row['id']}}</b>
+                        <div class="odoo-k-actions" (click)="$event.stopPropagation()">
+                          @if (module.key==='patients'){<button class="odoo-k-act-btn" title="Ouvrir la fiche patient" (click)="openPatient(row)">◉</button>}
+                          @if (module.key==='billing'){<button class="odoo-k-act-btn" title="Imprimer la facture" (click)="printDocument('invoice',row)">⎙</button>}
+                          @if (module.key==='prescriptions'){<button class="odoo-k-act-btn" title="Imprimer l’ordonnance" (click)="printDocument('prescription',row)">⎙</button>}
+                          <button class="odoo-k-act-btn" title="Modifier" (click)="openEdit(row)">✎</button>
+                          <button class="odoo-k-act-btn" title="Supprimer" (click)="remove(row)">×</button>
+                        </div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="empty-state" style="grid-column: 1 / -1; background: white; border-radius: 12px; padding: 40px;">
+                      <div class="empty-icon" [innerHTML]="iconFor(module.key)"></div>
+                      <b>Aucun enregistrement trouvé</b>
+                      <p>Ajoutez un premier élément ou ajustez vos critères de recherche.</p>
+                      <button class="odoo-btn-primary" (click)="openCreate()">＋ Ajouter un élément</button>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <!-- List View (Odoo Tree View) -->
+                <section class="card table-card" style="border-radius: 8px;">
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Identifiant</th>
+                          @for (field of module.fields; track field.key){<th>{{field.label}}</th>}
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of activeRecords; track row['id']){
+                          <tr>
+                            <td><b class="id-tag">{{row['id']}}</b></td>
+                            @for (field of module.fields; track field.key){
+                              <td><span [ngClass]="field.key==='statut' ? 'status-pill ' + statusClass(row[field.key]) : ''">{{displayField(field,row)}}</span></td>
+                            }
+                            <td>
+                              <div class="action-group">
+                                @if (module.key==='patients'){<button class="action-mini" title="Ouvrir la fiche patient" (click)="openPatient(row)">◉</button>}
+                                @if (module.key==='billing'){<button class="action-mini" title="Imprimer la facture" (click)="printDocument('invoice',row)">⎙</button>}
+                                @if (module.key==='prescriptions'){<button class="action-mini" title="Imprimer l’ordonnance" (click)="printDocument('prescription',row)">⎙</button>}
+                                <button class="action-mini" title="Modifier" (click)="openEdit(row)">✎</button>
+                                <button class="action-mini" title="Supprimer" (click)="remove(row)">×</button>
+                              </div>
+                            </td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td [attr.colspan]="module.fields.length + 2" style="text-align: center; padding: 35px; color: #94a3b8;">
+                              Aucun enregistrement trouvé dans ce module.
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              }
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Odoo Footer -->
+    <footer class="footer" style="background:#ffffff; margin-top: auto;">
+      <span>© 2026 MediCAB · Plateforme de gestion de cabinet médical (Interface Odoo ERP 17/18)</span>
+      <span>Session : <b>{{currentUser?.role}}</b> ({{currentUser?.name}}) · Cabinet : <b>{{companyName}}</b></span>
+    </footer>
+  </div>
+
+  <!-- MODALS (Creation / Modification Form Modal) -->
+  @if (modalOpen && activeModule; as module){
+    <div class="modal-backdrop open" (click)="modalOpen=false">
+      <section class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="module-title-icon small" [innerHTML]="iconFor(module.key)"></span>
+            <div>
+              <span class="eyebrow">{{module.group}}</span>
+              <h2>{{editingId?'Modifier':'Nouveau'}} — {{module.title}}</h2>
+            </div>
+          </div>
+          <button class="icon-btn" (click)="modalOpen=false">×</button>
+        </div>
+        <form (ngSubmit)="save()">
+          <div class="form-grid">
+            @for (field of module.fields; track field.key){
+              <div class="field" [class.full]="field.type==='textarea'">
+                <label>{{field.label}} @if (field.required){<em>*</em>}</label>
+                @if (field.type==='textarea'){
+                  <textarea [(ngModel)]="form[field.key]" [name]="field.key" rows="3"></textarea>
+                }@else if (field.type==='select'){
+                  <select [(ngModel)]="form[field.key]" [name]="field.key" [required]="!!field.required">
+                    <option value="">Sélectionner…</option>
+                    @for (option of optionsFor(field); track option.value){
+                      <option [value]="option.value">{{option.label}}</option>
+                    }
+                  </select>
+                }@else if (field.type==='boolean'){
+                  <input type="checkbox" [(ngModel)]="form[field.key]" [name]="field.key"> Actif
+                }@else{
+                  <input [type]="field.type" [(ngModel)]="form[field.key]" [name]="field.key" [required]="!!field.required">
+                }
+              </div>
+            }
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-light" (click)="modalOpen=false">Annuler</button>
+            <button type="submit" class="odoo-btn-primary">✓ Enregistrer</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  <!-- Patient Dossier Modal -->
+  @if (selectedPatient){
+    <div class="modal-backdrop open" (click)="closePatient()">
+      <section class="modal patient-profile-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="avatar avatar-purple">{{patientInitial(selectedPatient)}}</span>
+            <div>
+              <span class="eyebrow">DOSSIER MÉDICAL PATIENT</span>
+              <h2>{{selectedPatient['nom']}}</h2>
+            </div>
+          </div>
+          <button class="icon-btn" (click)="closePatient()">×</button>
+        </div>
+        <div class="patient-summary-grid">
+          <div><small>Téléphone</small><b>{{display(selectedPatient['telephone'])}}</b></div>
+          <div><small>E-mail</small><b>{{display(selectedPatient['email'])}}</b></div>
+          <div><small>Âge</small><b>{{display(selectedPatient['age'])}}</b></div>
+          <div><small>Groupe sanguin</small><b>{{display(selectedPatient['groupeSanguin'])}}</b></div>
+        </div>
+        <h3>Historique des consultations</h3>
+        <div class="profile-history">
+          @for(c of patientConsultations(selectedPatient['id']); track c['id']){
+            <div>
+              <b>{{c['date']}} · {{c['motif']}}</b>
+              <p>{{c['diagnostic']||c['notes']||'Aucune note renseignée.'}}</p>
+            </div>
+          }@empty{
+            <p class="muted-note">Aucune consultation enregistrée.</p>
+          }
+        </div>
+        <h3>Rendez-vous planifiés</h3>
+        <div class="profile-history">
+          @for(r of patientAppointments(selectedPatient['id']); track r['id']){
+            <div>
+              <b>{{r['date']}} · {{r['heure']}}</b>
+              <p>{{r['motif']}} — <span class="status-pill" [ngClass]="statusClass(r['statut'])">{{r['statut']}}</span></p>
+            </div>
+          }@empty{
+            <p class="muted-note">Aucun rendez-vous enregistré.</p>
+          }
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-light" (click)="closePatient()">Fermer</button>
+          <button class="odoo-btn-primary" (click)="go('consultations');closePatient()">Accéder aux consultations</button>
+        </div>
+      </section>
+    </div>
+  }
+
+  <!-- Toast Notification -->
+  @if (toast){
+    <div class="toast">
+      <i>✓</i>
+      <b>{{toast}}</b>
+      <button class="toast-close" (click)="toast=''">×</button>
+    </div>
+  }
+}
