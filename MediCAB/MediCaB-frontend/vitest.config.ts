@@ -5,11 +5,5 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/app/unit_tests/**/*.test.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
-      reportsDirectory: './coverage',
-      include: ['src/app/unit_tests/**'],
-    },
   },
 });

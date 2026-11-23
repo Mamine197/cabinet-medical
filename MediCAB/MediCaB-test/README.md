@@ -1,6 +1,6 @@
-# 🧪 MediCAB — Framework de Tests Automatisés & Qualité de Code (Pytest + Playwright + Vitest + SonarQube)
+# 🧪 MediCAB — Framework de Tests Automatisés (Pytest + Playwright + Vitest)
 
-> Framework d'assurance qualité (QA), de tests de bout en bout (E2E), de tests unitaires et d'analyse de couverture SonarQube pour l'ERP médical **MediCAB**, fondé sur le patron **Page Object Model (POM)**.
+> Framework d'assurance qualité (QA), de tests de bout en bout (E2E) et de tests unitaires pour l'ERP médical **MediCAB**, fondé sur le patron **Page Object Model (POM)**.
 
 ---
 
@@ -31,18 +31,14 @@ MediCaB-test/
 │   ├── test_django_models_unit.py        # Règle anti-collision rendez-vous (EF-17), rôles & Audit
 │   └── test_ai_microservice_unit.py      # SOAP draft, Triage NLP, Calcul AMO, Modèle No-Show
 │
-├── 📂 reports/                           # 📊 Rapports d'exécution & Couverture Sonar
-│   ├── report.html                       # Rapport HTML interactif Playwright & Pytest
-│   └── coverage.xml                      # Rapport XML de couverture de code pour SonarQube
+├── 📂 reports/                           # 📊 Rapports d'exécution
+│   └── report.html                       # Rapport HTML interactif Playwright & Pytest
 │
-├── 📜 sonar-project.properties           # 🔍 Configuration officielle SonarQube & SonarCloud
 ├── 📜 conftest.py                        # Fixtures Pytest partagées (navigateurs, comptes de test)
 ├── 📜 pytest.ini                         # Configuration des marqueurs, base_url et reporting
-├── 📜 requirements.txt                   # Dépendances QA (pytest, playwright, pytest-cov, etc.)
-├── 🚀 run_tests.bat                      # Lancement des tests E2E (double-clic)
-├── 🚀 run_tests.ps1                      # Lancement PowerShell (-Headed, -Marker)
-├── 🚀 run_sonar_coverage.bat             # 🎯 Génération de la couverture SonarQube en 1 clic
-└── 🚀 run_sonar_coverage.ps1             # Script PowerShell de calcul de couverture SonarQube
+├── 📜 requirements.txt                   # Dépendances QA (pytest, playwright, pytest-html)
+├── 🚀 run_tests.bat                      # Lancement des tests E2E en 1 clic (double-clic)
+└── 🚀 run_tests.ps1                      # Lancement PowerShell (-Headed, -Marker)
 ```
 
 ---
@@ -62,29 +58,28 @@ Double-cliquez sur `run_tests.bat` ou exécutez dans PowerShell :
 ```
 
 ### 3. Exécution avec Navigateur Visible (Mode Headed)
-Idéal pour les démonstrations devant le professeur :
+Idéal pour voir le navigateur exécuter les actions en direct :
 ```powershell
 .\run_tests.ps1 -Headed
 ```
 
+### 4. Filtrer par Marqueur
+- **Tests de fumée (Smoke) :**
+  ```powershell
+  .\run_tests.ps1 -Marker "smoke"
+  ```
+- **Tests de sécurité (RBAC) :**
+  ```powershell
+  .\run_tests.ps1 -Marker "rbac"
+  ```
+- **Tests IA :**
+  ```powershell
+  .\run_tests.ps1 -Marker "ai"
+  ```
+
 ---
 
-## 🔍 Intégration SonarQube & SonarCloud
+## 📊 Consultation des Rapports de Test
 
-Le dossier `MediCaB-test` contient tout le nécessaire pour l'analyse de qualité de code :
-
-### 1. Générer les rapports de couverture de code
-Exécutez simplement :
-```powershell
-.\run_sonar_coverage.ps1
-```
-Ce script lance automatiquement les tests unitaires Python (`pytest-cov`) et TypeScript (`vitest --coverage`) pour générer :
-- `reports/coverage.xml` (Backend Django & IA FastAPI)
-- `../MediCaB-frontend/coverage/lcov.info` (Frontend Angular)
-
-### 2. Lancer l'analyse SonarScanner
-Si vous disposez du SonarScanner CLI :
-```powershell
-sonar-scanner
-```
-Les fichiers sont configurés dans `sonar-project.properties` pour remonter automatiquement les métriques, la couverture et le Quality Gate.
+Après chaque exécution, ouvrez simplement le rapport HTML généré :
+`MediCAB/MediCaB-test/reports/report.html` dans n'importe quel navigateur pour consulter les statuts détaillés, les temps d'exécution et les logs.
